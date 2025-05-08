@@ -23,22 +23,22 @@ def run():
     st.sidebar.header("Patient Parameters")
 
     # --- Input form ---
-    age = st.sidebar.slider("Age", 1, 120, 50)
+    age = st.sidebar.slider("Age", 18, 120, 50)  
     sex = st.sidebar.selectbox("Sex", ["Male", "Female"])
     chest_pain = st.sidebar.selectbox(
         "Chest Pain Type",
         ["Typical Angina", "Atypical Angina", "Non-Anginal Pain", "Asymptomatic"]
     )
-    resting_bp = st.sidebar.slider("Resting BP (mm Hg)", 50, 250, 120)
-    cholesterol = st.sidebar.slider("Cholesterol (mg/dl)", 100, 600, 200)
+    resting_bp = st.sidebar.slider("Resting BP (mm Hg)", 80, 200, 120)  
+    cholesterol = st.sidebar.slider("Cholesterol (mg/dl)", 100, 400, 200)  
     fasting_bs = st.sidebar.selectbox("Fasting BS >120 mg/dl", ["Yes", "No"])
     resting_ecg = st.sidebar.selectbox(
         "Resting ECG",
         ["Normal", "ST-T Abnormality", "LVH by Estes"]
     )
-    max_hr = st.sidebar.slider("Max HR", 60, 220, 150)
+    max_hr = st.sidebar.slider("Max HR", 60, 200, 150)  
     exercise_angina = st.sidebar.selectbox("Exercise Angina", ["Yes", "No"])
-    oldpeak = st.sidebar.slider("ST Depression (Oldpeak)", 0.0, 6.0, 1.0, step=0.1)
+    oldpeak = st.sidebar.slider("ST Depression (Oldpeak)", 0.0, 4.0, 1.0, step=0.1) 
     st_slope = st.sidebar.selectbox("ST Slope", ["Upsloping", "Flat", "Downsloping"])
 
     if st.sidebar.button("Predict"):
