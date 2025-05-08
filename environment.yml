@@ -12,4 +12,9 @@ dependencies:
   - scipy
   - seaborn
   - ipykernel
+  - shap
+  - lime
+  - pip:
+      - eli5
+      - dice-ml
 prefix: C:\Users\giova\miniconda3\envs\HCI_heart_attack
