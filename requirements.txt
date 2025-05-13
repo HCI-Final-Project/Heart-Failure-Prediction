@@ -9,3 +9,4 @@ shap
 lime
 eli5
 dice-ml
+plotly

@@ -3,9 +3,15 @@ import streamlit.components.v1 as components
 import pandas as pd
 import joblib
 import warnings
-import shap                                 # ── SHAP: explainer e plots
-import matplotlib.pyplot as plt             # ── SHAP: fallback matplotlib
+import shap                                 
+import matplotlib.pyplot as plt             
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+import numpy as np
+import lime
+import lime.lime_tabular
+import plotly.graph_objects as go
+from shap import Explanation
+
 
 # ── MAPPING FEATURE → ETICHETTA UMAN-FRIENDLY
 FEATURE_LABELS = {
@@ -150,7 +156,7 @@ def run():
         data  = sv.data[0]
         names = sv.feature_names
         # top-K
-        import numpy as np
+
         idx = np.argsort(np.abs(vals))[::-1][:7]
         vals_top  = vals[idx]
         data_top  = data[idx]
@@ -161,7 +167,6 @@ def run():
         pretty = []
         for feat in names_top:
             pretty.append(FEATURE_LABELS.get(feat, feat))
-        from shap import Explanation
         single_exp = Explanation(
             values=vals_top,
             base_values=base,
@@ -169,30 +174,93 @@ def run():
             feature_names=pretty
         )
 
-        # legenda colori
-        st.markdown("""
-        <div style="display:flex; justify-content:center; gap:2rem;">
-          <span style="color:#E74C3C;">&#9632; incrise probability</span>
-          <span style="color:#3498DB;">&#9632; decrise probability</span>
-        </div>
-        """, unsafe_allow_html=True)
 
-        # force plot più largo
-        # margine in alto per distanziare dal titolo/metriche
-        st.markdown("<div style='margin-top:2rem;'></div>", unsafe_allow_html=True)
-
-        force_plot = shap.plots.force(
-            explainer.expected_value[1] * 100,     # baseline in %
-            single_exp.values,                     # già in %
-            single_exp.data,
-            feature_names=single_exp.feature_names,
-            matplotlib=False
+        # --- prepara l’explainer LIME (come già fatto) ---
+        lime_explainer = lime.lime_tabular.LimeTabularExplainer(
+            training_data=background_data,
+            feature_names=sv.feature_names,
+            class_names=['Not at risk', 'At risk'],
+            mode='classification'
         )
-        st_shap(force_plot, height=300, width=1000)
- 
-        # baseline & prediction chiaramente
-        # esplicito in chiaro che si tratta di percentuali
-        st.markdown(f""" **Baseline probability:** {base:.2f}%   **Predicted probability (at risk):** {proba[1]*100:.2f}% """)
+
+        # --- spiega l’istanza ---
+        i = 0
+        exp = lime_explainer.explain_instance(
+            df_input.iloc[i],            # DataFrameRow mantiene i nomi delle feature
+            model.predict_proba,
+            num_features=7
+        )
+
+        # Estrai dati per il plot
+        # 1) Probabilità
+        probs = model.predict_proba(df_input.iloc[[i]])[0]
+        df_prob = pd.DataFrame({
+            'Classe': ['Not at risk','At risk'],
+            'Probabilità': probs
+        })
+
+        # 2) Contributi
+        feat_contrib = exp.as_list(label=1)  # lista di tuple (feature_expr, contrib)
+        df_contrib = pd.DataFrame(feat_contrib, columns=['feature_expr','contrib'])
+        df_contrib['color'] = df_contrib.contrib.apply(lambda x: 'orangered' if x>0 else 'steelblue')
+
+        # --- qui la magia: ricavo il nome “pulito” della feature ---
+        # es. "ST_Slope_Up <= 0.00" -> "ST_Slope_Up"
+        df_contrib['feat_name'] = df_contrib['feature_expr'].str.split(' ', 1).str[0]
+        df_contrib['feat_pretty'] = df_contrib['feat_name'].map(FEATURE_LABELS).fillna(df_contrib['feat_name'])
+
+        # lista dei soli nomi da cercare nel DataFrame
+        feat_names = df_contrib['feat_name'].tolist()
+
+        # 3) Valori: estraggo i valori originali per ciascuna feat_name
+        # costruisco una tabella con indice = nome feature, colonna Valore
+        df_vals = df_input.iloc[i][feat_names] \
+                    .to_frame(name='Value')
+
+
+        # ── Interfaccia ──
+        st.title("🧠 XAI Dashboard")
+
+        # crea 2 tab: 0=SHAP, 1=LIME
+        tab_shap, tab_lime = st.tabs(["📊 SHAP Explanation", "⚖️ Feature contibutions (LIME)"])
+
+        with tab_shap:
+            st.subheader("SHAP Explanation")
+            # legenda colori
+            st.markdown("""
+            <div style="display:flex; justify-content:center; gap:2rem;">
+                <span style="color:#E74C3C;">&#9632; Increase probability</span>
+                <span style="color:#3498DB;">&#9632; Decrease probability</span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
+
+            force_plot = shap.plots.force(
+                explainer.expected_value[1] * 100,
+                single_exp.values,
+                single_exp.data,
+                feature_names=single_exp.feature_names,
+                matplotlib=False
+            )
+            st_shap(force_plot, height=300, width=900)
+
+        with tab_lime:
+            st.subheader("Feature contibutions (LIME)")
+            fig_c = go.Figure(go.Bar(
+                x=df_contrib['contrib'],
+                y=df_contrib['feat_pretty'],
+                orientation='h',
+                marker_color=df_contrib['color']
+            ))
+            fig_c.update_layout(
+                title="How each feature contributes to the prediction",
+                xaxis_title="Positive/Negative contribution",
+                yaxis_title="Feature",
+                margin=dict(l=200, r=20, t=50, b=20)
+            )
+            st.plotly_chart(fig_c, use_container_width=True)
+            
+
 
 if __name__ == "__main__":
     run()
