@@ -88,20 +88,74 @@ def run():
     st.title("Explainable Heart Failure Risk Prediction")
     st.sidebar.header("Patient Parameters")
 
-    # --- Input form ---
-    age = st.sidebar.slider("Age", 18, 120, 50)
-    sex = st.sidebar.selectbox("Sex", ["Male","Female"])
-    chest_pain = st.sidebar.selectbox("Chest Pain Type",
-        ["Typical Angina","Atypical Angina","Non-Anginal Pain","Asymptomatic"])
-    resting_bp = st.sidebar.slider("Resting BP (mm Hg)", 80,200,120)
-    cholesterol = st.sidebar.slider("Cholesterol (mg/dl)",100,400,200)
-    fasting_bs = st.sidebar.selectbox("Fasting BS >120 mg/dl", ["Yes","No"])
-    resting_ecg = st.sidebar.selectbox("Resting ECG",
-        ["Normal","ST-T Abnormality","LVH by Estes"])
-    max_hr = st.sidebar.slider("Max HR", 60,200,150)
-    exercise_angina = st.sidebar.selectbox("Exercise Angina", ["Yes","No"])
-    oldpeak = st.sidebar.slider("ST Depression (Oldpeak)", 0.0,4.0,1.0, step=0.1)
-    st_slope = st.sidebar.selectbox("ST Slope", ["Upsloping","Flat","Downsloping"])
+    # --- Input form with tooltips ---
+    # --- Input form with clinically precise tooltips ---
+    age = st.sidebar.slider(
+        "Age", 18, 120, 50,
+        help="Patient age in completed years"
+    )
+    sex = st.sidebar.selectbox(
+        "Sex", ["Male", "Female"],
+        help="Patient biological sex"
+    )
+    chest_pain = st.sidebar.selectbox(
+        "Chest Pain Type",
+        ["Typical Angina", "Atypical Angina", "Non-Anginal Pain", "Asymptomatic"],
+        help=(
+            "Chest pain classification:\n"
+            "- Typical Angina: substernal discomfort with characteristic quality/duration,\n"
+            "  provoked by exertion or stress, relieved by rest or nitrates\n"
+            "- Atypical Angina: meets two of these criteria\n"
+            "- Non-Anginal Pain: meets one or fewer criteria\n"
+            "- Asymptomatic: no chest pain"
+        )
+    )
+    resting_bp = st.sidebar.slider(
+        "Resting BP (mm Hg)", 80, 200, 120,
+        help="Resting brachial artery systolic pressure (mm Hg)"
+    )
+    cholesterol = st.sidebar.slider(
+        "Cholesterol (mg/dl)", 100, 400, 200,
+        help="Serum total cholesterol concentration (mg/dL)"
+    )
+    fasting_bs = st.sidebar.selectbox(
+        "Fasting BS >120 mg/dl", ["Yes", "No"],
+        help="Elevated fasting blood glucose (> 120 mg/dL): yes or no"
+    )
+    resting_ecg = st.sidebar.selectbox(
+        "Resting ECG",
+        ["Normal", "ST-T Abnormality", "LVH by Estes"],
+        help=(
+            "Resting electrocardiogram interpretation:\n"
+            "- Normal: no abnormalities\n"
+            "- ST-T Abnormality: ST depression or T-wave inversion\n"
+            "- LVH by Estes: criteria for left ventricular hypertrophy"
+        )
+    )
+    max_hr = st.sidebar.slider(
+        "Max HR", 60, 200, 150,
+        help="Peak exercise heart rate achieved (beats per minute)"
+    )
+    exercise_angina = st.sidebar.selectbox(
+        "Exercise Angina", ["Yes", "No"],
+        help="Presence of angina during exercise stress test"
+    )
+    oldpeak = st.sidebar.slider(
+        "ST Depression (Oldpeak)", 0.0, 4.0, 1.0, step=0.1,
+        help="Magnitude of ST-segment depression at peak exercise (mm)"
+    )
+    st_slope = st.sidebar.selectbox(
+        "ST Slope", ["Upsloping", "Flat", "Downsloping"],
+        help=(
+            "Slope of the ST segment at peak exercise:\n"
+            "- Upsloping: rapid upstroke post–J point\n"
+            "- Flat: horizontal\n"
+            "- Downsloping: downward slope"
+        )
+    )
+
+
+
 
     if st.sidebar.button("Predict"):
         # --- PREPROCESSING INPUT identico a prima ---
