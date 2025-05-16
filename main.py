@@ -157,6 +157,8 @@ def run():
         names = sv.feature_names
         # top-K
 
+
+
         idx = np.argsort(np.abs(vals))[::-1][:7]
         vals_top  = vals[idx]
         data_top  = data[idx]
@@ -223,18 +225,73 @@ def run():
 
         # crea 2 tab: 0=SHAP, 1=LIME
         tab_shap, tab_lime = st.tabs(["📊 SHAP Explanation", "⚖️ Feature contibutions (LIME)"])
-
         with tab_shap:
-            st.subheader("SHAP Explanation")
-            # legenda colori
+            st.subheader("🔍 SHAP Insights")
+            #stampa la baseline in modo carino
+            # Legend
+
+            st.markdown("### Textual Interpretation", unsafe_allow_html=True)
+
             st.markdown("""
-            <div style="display:flex; justify-content:center; gap:2rem;">
-                <span style="color:#E74C3C;">&#9632; Increase probability</span>
-                <span style="color:#3498DB;">&#9632; Decrease probability</span>
+            <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;">
+                <span>
+                    <span style="color:#E74C3C;">🔺</span>
+                    <span style="color:white; font-weight:bold;">Positive impact</span>
+                </span>
+                <span>
+                    <span style="color:#3498DB;">🔻</span>
+                    <span style="color:white; font-weight:bold;">Negative impact</span>
+                </span>
             </div>
             """, unsafe_allow_html=True)
-            st.markdown("<div style='margin-top:1rem;'></div>", unsafe_allow_html=True)
+            
+            # Baseline
+            st.markdown(
+                f"""
+                <div style='color:white; margin-top:0.8%; margin-left:0.5%;'>
+                    <u><b><i>Baseline -> </i></b>{base:.2f}%</u>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
+            # Prepare & sort: positives first (largest → smallest), then negatives (closest to zero → most negative)
+            shap_items = list(zip(single_exp.feature_names,
+                                single_exp.values,
+                                single_exp.data))
+            shap_sorted = sorted(shap_items, key=lambda x: x[1], reverse=True)
+
+            # Textual interpretation in order
+            for feature, impact, value in shap_sorted:
+                if impact > 0:
+                    st.markdown(
+                        f"""
+                        <span>
+                            <span style='color:white;'>🔺 <strong>{feature}</strong> - </span>
+                            <span style='color:#E74C3C;'>increases risk by <strong>{impact:.2f}%</strong>.</span>
+                        </span>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.markdown(
+                        f"""
+                        <span>
+                            <span style='color:white;'>🔻 <strong>{feature}</strong> - </span>
+                            <span style='color:#3498DB;'>decreases risk by <strong>{abs(impact):.2f}%</strong>.</span>
+                        </span>
+                        """,
+                        unsafe_allow_html=True
+                    )
+            st.markdown(
+                f"""
+                <div style='color:white; margin-top:0.8%; margin-left:0.5%;'>
+                    <b>Graphical interpretation</b>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            # Then the force plot
             force_plot = shap.plots.force(
                 explainer.expected_value[1] * 100,
                 single_exp.values,
@@ -244,22 +301,65 @@ def run():
             )
             st_shap(force_plot, height=300, width=900)
 
+
         with tab_lime:
-            st.subheader("Feature contibutions (LIME)")
+            st.subheader("⚖️ LIME Insights")
+
+            # Sort contributions (highest → lowest)
+            df_lime_sorted = df_contrib.sort_values(by='contrib', ascending=False).reset_index(drop=True)
+
+            # 1️⃣ Textual interpretation first
+            st.markdown("### Textual Interpretation", unsafe_allow_html=True)
+            st.markdown(
+                """
+                    <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;">
+                            <span>
+                                <span style="color:#E74C3C;">🔺</span>
+                                <span style="color:white; font-weight:bold;">Positive impact</span>
+                            </span>
+                            <span>
+                                <span style="color:#3498DB;">🔻</span>
+                                <span style="color:white; font-weight:bold;">Negative impact</span>
+                            </span>
+                        
+                    </div>
+                """
+            , unsafe_allow_html=True)
+            for _, row in df_lime_sorted.iterrows():
+                color = "#E74C3C" if row.contrib > 0 else "#3498DB"
+                arrow = "🔺" if row.contrib > 0 else "🔻"
+                verb = "increases" if row.contrib > 0 else "decreases"
+                st.markdown(
+                    f"""
+                    <span>
+                    <!-- Arrow + feature in white -->
+                    <span style='color:white;'>
+                        {arrow} <strong>{row.feat_pretty} - </strong>
+                    </span>
+                    <!-- Numeric part in red/blue -->
+                    <span style='color:{color};'>
+                        {verb} risk by <strong>{abs(row.contrib):.2f}</strong> points.
+                    </span>
+                    </span>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            # 2️⃣ Then the bar chart
             fig_c = go.Figure(go.Bar(
-                x=df_contrib['contrib'],
-                y=df_contrib['feat_pretty'],
+                x=df_lime_sorted['contrib'],
+                y=df_lime_sorted['feat_pretty'],
                 orientation='h',
-                marker_color=df_contrib['color']
+                marker_color=df_lime_sorted['color']
             ))
             fig_c.update_layout(
-                title="How each feature contributes to the prediction",
-                xaxis_title="Positive/Negative contribution",
+                title="Graphical Interpretation",
+                xaxis_title="Contribution",
                 yaxis_title="Feature",
                 margin=dict(l=200, r=20, t=50, b=20)
             )
             st.plotly_chart(fig_c, use_container_width=True)
-            
+
 
 
 if __name__ == "__main__":
