@@ -286,18 +286,89 @@ def run():
         df_vals = df_input.iloc[i][feat_names] \
                     .to_frame(name='Value')
 
+        # Prepare & sort: positives first (largest → smallest), then negatives (closest to zero → most negative)
+        shap_items = list(zip(single_exp.feature_names,
+                            single_exp.values,
+                            single_exp.data))
+        shap_sorted = sorted(shap_items, key=lambda x: x[1], reverse=True)
 
+        
+        # Sort contributions (highest → lowest)
+        df_lime_sorted = df_contrib.sort_values(by='contrib', ascending=False).reset_index(drop=True)
         # ── Interfaccia ──
-        st.title("🧠 XAI Dashboard")
+        st.title("🧠 XAI Dashboard")   
+
+
+        # ── Spiegazione unica SHAP+LIME ──
+        # 1) Feature SHAP
+        shap_inc = [FEATURE_LABELS.get(f, f) for f, impact, _ in shap_sorted if impact > 0]
+        shap_dec = [FEATURE_LABELS.get(f, f) for f, impact, _ in shap_sorted if impact < 0]
+
+        # 2) Feature LIME
+        lime_inc = [
+            FEATURE_LABELS.get(row.feat_name, row.feat_name)
+            for _, row in df_lime_sorted.iterrows()
+            if row.contrib > 0
+        ]
+        lime_dec = [
+            FEATURE_LABELS.get(row.feat_name, row.feat_name)
+            for _, row in df_lime_sorted.iterrows()
+            if row.contrib < 0
+        ]
+
+
+        # 4) Costruisco il testo
+        st.markdown("""
+                <style>
+                .explanation-box {
+                    background: #1E1E1E;
+                    border-left: 5px solid #2196F3;
+                    border-radius: 6px;
+                    padding: 16px 20px;
+                    margin: 16px 0;
+                    font-family: 'Segoe UI', Tahoma, sans-serif;
+                    color: white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+                }
+                .explanation-box h3 {
+                    color: white;
+                    margin-bottom: 12px;
+                }
+                .explanation-box p {
+                    line-height: 1.5em;
+                    margin: 8px 0;
+                }
+                .explanation-box strong {
+                    color: blue;
+                }
+                </style>
+        """, unsafe_allow_html=True)
+
+        text_unico = (
+            "<h3>Quick Explanation</h3>"
+            "<strong>1. First methodology</strong>: this provides an overall view by identifying which factors, on average, tend to push the risk up or down among all patients.<br><br>"
+            f" • Factors that tend to increase risk: {', '.join(shap_inc)}.<br>"
+            f" • Factors that tend to decrease risk: {', '.join(shap_dec)}.<br><br>"
+            "<strong>2. Second methodology</strong>: this focuses on your individual case, showing which inputs had the strongest influence on your specific prediction.<br><br>"
+            f" • Factors that increased your personal risk: {', '.join(lime_inc)}.<br>"
+            f" • Factors that decreased your personal risk: {', '.join(lime_dec)}.<br><br>"
+            f"Overall, based on these analyses, you are **{'at risk of heart failure' if pred == 1 else 'not at risk of heart failure'}**."
+        )
+
+
+        st.markdown(
+            f"<div class='explanation-box'>{text_unico}</div>",
+            unsafe_allow_html=True
+        )
 
         # crea 2 tab: 0=SHAP, 1=LIME
-        tab_shap, tab_lime = st.tabs(["📊 SHAP Explanation", "⚖️ Feature contibutions (LIME)"])
+        st.markdown("### Advanced interpretation", unsafe_allow_html=True)
+
+        tab_shap, tab_lime = st.tabs(["SHAP Explanation", "LIME Explanation"])
         with tab_shap:
-            st.subheader("🔍 SHAP Insights")
             #stampa la baseline in modo carino
             # Legend
 
-            st.markdown("### Textual Interpretation", unsafe_allow_html=True)
 
             st.markdown("""
             <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;">
@@ -312,22 +383,6 @@ def run():
             </div>
             """, unsafe_allow_html=True)
             
-            # Baseline
-            st.markdown(
-                f"""
-                <div style='color:white; margin-top:0.8%; margin-left:0.5%;'>
-                    <u><b><i>Baseline -> </i></b>{base:.2f}%</u>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            # Prepare & sort: positives first (largest → smallest), then negatives (closest to zero → most negative)
-            shap_items = list(zip(single_exp.feature_names,
-                                single_exp.values,
-                                single_exp.data))
-            shap_sorted = sorted(shap_items, key=lambda x: x[1], reverse=True)
-
             # Textual interpretation in order
             for feature, impact, value in shap_sorted:
                 if impact > 0:
@@ -358,6 +413,16 @@ def run():
                 """,
                 unsafe_allow_html=True
             )
+            # Baseline
+            st.markdown(
+                f"""
+                <div style='color:white; margin-top:0.8%; margin-left:0.5%;'>
+                    <u><b><i>Baseline -> </i></b>{base:.2f}%</u>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
             # Then the force plot
             force_plot = shap.plots.force(
                 explainer.expected_value[1] * 100,
@@ -370,13 +435,8 @@ def run():
 
 
         with tab_lime:
-            st.subheader("⚖️ LIME Insights")
-
-            # Sort contributions (highest → lowest)
-            df_lime_sorted = df_contrib.sort_values(by='contrib', ascending=False).reset_index(drop=True)
 
             # 1️⃣ Textual interpretation first
-            st.markdown("### Textual Interpretation", unsafe_allow_html=True)
             st.markdown(
                 """
                     <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;">
