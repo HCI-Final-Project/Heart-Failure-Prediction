@@ -15,6 +15,7 @@ dependencies:
   - shap
   - lime
   - plotly
+  - streamlit-toggle-switch
   - pip:
       - eli5
       - dice-ml

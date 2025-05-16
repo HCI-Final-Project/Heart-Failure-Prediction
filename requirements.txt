@@ -10,3 +10,4 @@ lime
 eli5
 dice-ml
 plotly
+streamlit-toggle-switch

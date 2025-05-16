@@ -11,7 +11,8 @@ import lime
 import lime.lime_tabular
 import plotly.graph_objects as go
 from shap import Explanation
-
+import plotly.express as px
+import streamlit_toggle as tog
 
 # ── MAPPING FEATURE → ETICHETTA UMAN-FRIENDLY
 FEATURE_LABELS = {
@@ -90,71 +91,83 @@ def run():
 
     # --- Input form with tooltips ---
     # --- Input form with clinically precise tooltips ---
-    age = st.sidebar.slider(
-        "Age", 18, 120, 50,
-        help="Patient age in completed years"
-    )
-    sex = st.sidebar.selectbox(
-        "Sex", ["Male", "Female"],
-        help="Patient biological sex"
-    )
+    # nella run(), subito dopo st.sidebar.header(...)
+
+    # 📌 dentro run(), al posto di st.sidebar.radio…
+    with st.sidebar:
+        advanced = tog.st_toggle_switch(
+            label="Active Advanced mode",      # etichetta dello switch
+            key="mode_switch",          # chiave unica
+            default_value=False,        # False → Base, True → Advanced
+            label_after=False,          # False: label prima dello switch
+            inactive_color="#D3D3D3",   # colore quando off
+            active_color="#11567F",     # colore quando on
+            track_color="#29B5E8"       # colore della traccia
+        )
+    mode = "Advanced" if advanced else "Base"
+
+
+
+    # --- Definizione degli input secondo la modalità ---
+    if mode == "Advanced":
+        # Input “classici” con slider / selectbox
+        age = st.sidebar.slider("Age", 18, 120, 50, help="Patient age in completed years")
+        resting_bp = st.sidebar.slider("Resting BP (mm Hg)", 80, 200, 120, help="Resting systolic BP")
+        cholesterol = st.sidebar.slider("Cholesterol (mg/dl)", 100, 400, 200, help="Serum total cholesterol")
+        max_hr = st.sidebar.slider("Max HR", 60, 200, 150, help="Peak exercise heart rate")
+        oldpeak = st.sidebar.slider(
+            "ST Depression (Oldpeak)", 0.0, 4.0, 1.0, step=0.1,
+            help="Magnitude of ST-segment depression"
+        )
+    else:
+        # Modalità BASE: scegli un intervallo, poi prendi il valore medio
+        def range_midpoint(label, options, help_text):
+            """Helper: selectbox di ranges e ritorna punto medio"""
+            sel = st.sidebar.selectbox(label, options, help=help_text)
+            low, high = map(float, sel.split("-"))
+            return (low + high) / 2
+
+        age = range_midpoint(
+            "Age range",
+            ["18-40", "40-60", "60-80", "80-120"],
+            "Select age interval; midpoint used as input"
+        )
+        resting_bp = range_midpoint(
+            "Resting BP range (mm Hg)",
+            ["80-100", "100-120", "120-140", "140-200"],
+            "Select resting systolic BP interval"
+        )
+        cholesterol = range_midpoint(
+            "Cholesterol range (mg/dl)",
+            ["100-200", "200-300", "300-400"],
+            "Select cholesterol interval"
+        )
+        max_hr = range_midpoint(
+            "Max HR range",
+            ["60-100", "100-140", "140-200"],
+            "Select max heart rate interval"
+        )
+        oldpeak = range_midpoint(
+            "ST Depression range (Oldpeak)",
+            ["0.0-1.0", "1.0-2.0", "2.0-3.0", "3.0-4.0"],
+            "Select ST depression interval"
+        )
+
+    # input categorici invariati
+    sex = st.sidebar.selectbox("Sex", ["Male", "Female"], help="Patient biological sex")
     chest_pain = st.sidebar.selectbox(
         "Chest Pain Type",
         ["Typical Angina", "Atypical Angina", "Non-Anginal Pain", "Asymptomatic"],
-        help=(
-            "Chest pain classification:\n"
-            "- Typical Angina: substernal discomfort with characteristic quality/duration,\n"
-            "  provoked by exertion or stress, relieved by rest or nitrates\n"
-            "- Atypical Angina: meets two of these criteria\n"
-            "- Non-Anginal Pain: meets one or fewer criteria\n"
-            "- Asymptomatic: no chest pain"
-        )
+        help="Chest pain classification"
     )
-    resting_bp = st.sidebar.slider(
-        "Resting BP (mm Hg)", 80, 200, 120,
-        help="Resting brachial artery systolic pressure (mm Hg)"
-    )
-    cholesterol = st.sidebar.slider(
-        "Cholesterol (mg/dl)", 100, 400, 200,
-        help="Serum total cholesterol concentration (mg/dL)"
-    )
-    fasting_bs = st.sidebar.selectbox(
-        "Fasting BS >120 mg/dl", ["Yes", "No"],
-        help="Elevated fasting blood glucose (> 120 mg/dL): yes or no"
-    )
+    fasting_bs = st.sidebar.selectbox("Fasting BS >120 mg/dl", ["Yes", "No"], help="Elevated fasting glucose")
     resting_ecg = st.sidebar.selectbox(
         "Resting ECG",
         ["Normal", "ST-T Abnormality", "LVH by Estes"],
-        help=(
-            "Resting electrocardiogram interpretation:\n"
-            "- Normal: no abnormalities\n"
-            "- ST-T Abnormality: ST depression or T-wave inversion\n"
-            "- LVH by Estes: criteria for left ventricular hypertrophy"
-        )
+        help="Resting ECG interpretation"
     )
-    max_hr = st.sidebar.slider(
-        "Max HR", 60, 200, 150,
-        help="Peak exercise heart rate achieved (beats per minute)"
-    )
-    exercise_angina = st.sidebar.selectbox(
-        "Exercise Angina", ["Yes", "No"],
-        help="Presence of angina during exercise stress test"
-    )
-    oldpeak = st.sidebar.slider(
-        "ST Depression (Oldpeak)", 0.0, 4.0, 1.0, step=0.1,
-        help="Magnitude of ST-segment depression at peak exercise (mm)"
-    )
-    st_slope = st.sidebar.selectbox(
-        "ST Slope", ["Upsloping", "Flat", "Downsloping"],
-        help=(
-            "Slope of the ST segment at peak exercise:\n"
-            "- Upsloping: rapid upstroke post–J point\n"
-            "- Flat: horizontal\n"
-            "- Downsloping: downward slope"
-        )
-    )
-
-
+    exercise_angina = st.sidebar.selectbox("Exercise Angina", ["Yes", "No"], help="Exercise-induced angina")
+    st_slope = st.sidebar.selectbox("ST Slope", ["Upsloping", "Flat", "Downsloping"], help="Slope of ST segment")
 
 
     if st.sidebar.button("Predict"):
