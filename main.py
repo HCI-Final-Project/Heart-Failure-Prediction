@@ -353,19 +353,33 @@ def run():
                 </style>
             """, unsafe_allow_html=True)
 
-            # Quick explanation summary box
+            # Quick explanation summary box (bullet list version)
             text_unico = (
                 "<div class='explanation-box'>"
                 "<h3>🔍 Quick Explanation</h3>"
-                "<strong>1. First methodology</strong>: this provides an overall view by identifying which factors, on average, tend to push the risk up or down among all patients.<br><br>"
-                f"• Factors that tend to increase risk: {', '.join(shap_inc)}.<br>"
-                f"• Factors that tend to decrease risk: {', '.join(shap_dec)}.<br><br>"
-                "<strong>2. Second methodology</strong>: this focuses on your individual case, showing which inputs had the strongest influence on your specific prediction.<br><br>"
-                f"• Factors that increased your personal risk: {', '.join(lime_inc)}.<br>"
-                f"• Factors that decreased your personal risk: {', '.join(lime_dec)}.<br><br>"
-                f"Overall, based on these analyses, you are: "
-                f"<b style=\"color: #64b5f6;\">{'at risk of heart failure' if pred == 1 else 'not at risk of heart failure'}</b></div>"
+                "<ol>"
+                    "<li>"
+                    "<strong>First methodology</strong>: provides an overall view by identifying which factors, on average, tend to push the risk up or down among all patients."
+                    "<ul>"
+                        f"<li>Factors that tend to increase risk: {', '.join(shap_inc)}.</li>"
+                        f"<li>Factors that tend to decrease risk: {', '.join(shap_dec)}.</li>"
+                    "</ul>"
+                    "</li>"
+                    "<li>"
+                    "<strong>Second methodology</strong>: focuses on your individual case, showing which inputs had the strongest influence on your specific prediction."
+                    "<ul>"
+                        f"<li>Factors that increased your personal risk: {', '.join(lime_inc)}.</li>"
+                        f"<li>Factors that decreased your personal risk: {', '.join(lime_dec)}.</li>"
+                    "</ul>"
+                    "</li>"
+                "</ol>"
+                f"<p><strong>Overall</strong>, based on these analyses, you are: "
+                f"<b style='color: #64b5f6;'>"
+                    f"{'at risk of heart failure' if pred == 1 else 'not at risk of heart failure'}"
+                "</b></p>"
+                "</div>"
             )
+
 
             st.markdown(text_unico, unsafe_allow_html=True)
 
