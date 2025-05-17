@@ -435,11 +435,11 @@ def run():
 
                 st.markdown(
                     f"""
-                    <div style='color:#827f78; margin-top:0.8%; margin-left:0.5%;'>
-                        <u><b><i>Baseline -> </i></b>{base:.2f}%</u>
+                    <div style='color:#827f78; margin-top:3%; margin-left:0.5%;'>
+                        <u><b><i>Baseline:</i></b>{base:.2f}%</u>
                     </div>
                     """,
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True, help="Predicted risk without any new feature impact"
                 )
 
                 # SHAP force plot
