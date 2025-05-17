@@ -14,7 +14,6 @@ from shap import Explanation
 import plotly.express as px
 import streamlit_toggle as tog
 
-# ── MAPPING FEATURE → ETICHETTA UMAN-FRIENDLY
 FEATURE_LABELS = {
     "Age":               "Age",
     "RestingBP":         "Resting blood pressure",
@@ -49,7 +48,7 @@ def run():
     st.set_page_config(
         page_title="Explainable Heart Failure Risk Predictor",
         page_icon="❤️",
-        layout="wide",   # ── LAYOUT WIDE per tutto lo spazio disponibile
+        layout="wide",   
     )
     if 'predicted' not in st.session_state:
         st.session_state.predicted = False
@@ -63,7 +62,6 @@ def run():
     @st.cache_data
     def load_background(csv_path, n=100):
         df_bg = pd.read_csv(csv_path).head(n)
-        # preprocessing identico a df_input
         num_cols = ['Age','RestingBP','Cholesterol','MaxHR']
         df_bg[num_cols] = StandardScaler().fit_transform(df_bg[num_cols])
         cats = ['Sex','ChestPainType','RestingECG','ExerciseAngina','ST_Slope']
@@ -74,7 +72,7 @@ def run():
             names = enc.get_feature_names_out([col])
             enc_df = pd.concat([enc_df, pd.DataFrame(mat, columns=names, index=df_bg.index)], axis=1)
         proc = pd.concat([df_bg.drop(columns=cats), enc_df], axis=1)
-        # allineo colonne
+
         expected = [
             'Age','RestingBP','Cholesterol','FastingBS','MaxHR','Oldpeak',
             'Sex_F','Sex_M','ChestPainType_ASY','ChestPainType_ATA','ChestPainType_NAP','ChestPainType_TA',
@@ -85,35 +83,29 @@ def run():
             if c not in proc: proc[c] = 0
         return proc[expected].values
 
-    # CARICAMENTO
     model = load_model("model/heart_disease_model.pkl")
     background_data = load_background("model/heart.csv")
 
     st.title("Explainable Heart Failure Risk Prediction")
     st.sidebar.header("Patient Parameters")
 
-    # --- Input form with tooltips ---
-    # --- Input form with clinically precise tooltips ---
-    # nella run(), subito dopo st.sidebar.header(...)
 
-    # 📌 dentro run(), al posto di st.sidebar.radio…
     with st.sidebar:
         advanced = tog.st_toggle_switch(
-            label="Active Advanced mode",      # etichetta dello switch
-            key="mode_switch",          # chiave unica
-            default_value=False,        # False → Base, True → Advanced
-            label_after=False,          # False: label prima dello switch
-            inactive_color="#D3D3D3",   # colore quando off
-            active_color="#11567F",     # colore quando on
-            track_color="#29B5E8"       # colore della traccia
+            label="Active Advanced mode",      
+            key="mode_switch",          
+            default_value=False,        
+            label_after=False,          
+            inactive_color="#D3D3D3",   
+            active_color="#11567F",     
+            track_color="#29B5E8"       
         )
     mode = "Advanced" if advanced else "Base"
 
 
 
-    # --- Definizione degli input secondo la modalità ---
+
     if mode == "Advanced":
-        # Input “classici” con slider / selectbox
         age = st.sidebar.slider("Age", 18, 120, 50, help="Patient age in completed years")
         resting_bp = st.sidebar.slider("Resting BP (mm Hg)", 80, 200, 120, help="Resting systolic BP")
         cholesterol = st.sidebar.slider("Cholesterol (mg/dl)", 100, 400, 200, help="Serum total cholesterol")
@@ -123,7 +115,6 @@ def run():
             help="Magnitude of ST-segment depression"
         )
     else:
-        # Modalità BASE: scegli un intervallo, poi prendi il valore medio
         def range_midpoint(label, options, help_text):
             """Helper: selectbox di ranges e ritorna punto medio"""
             sel = st.sidebar.selectbox(label, options, help=help_text)
@@ -156,7 +147,6 @@ def run():
             "Select ST depression interval"
         )
 
-    # input categorici invariati
     sex = st.sidebar.selectbox("Sex", ["Male", "Female"], help="Patient biological sex")
     chest_pain = st.sidebar.selectbox(
         "Chest Pain Type",
@@ -176,7 +166,6 @@ def run():
     if st.sidebar.button("Predict"):
         st.session_state.predicted = True
 
-        # --- PREPROCESSING INPUT identico a prima ---
         df_input = pd.DataFrame([{
             "Age":age, "Sex":sex, "ChestPainType":chest_pain,
             "RestingBP":resting_bp, "Cholesterol":cholesterol,
@@ -205,11 +194,9 @@ def run():
             if c not in df_input: df_input[c] = 0
         df_input = df_input[expected]
 
-        # 3) PREDIZIONE
         pred  = model.predict(df_input)[0]
         proba = model.predict_proba(df_input)[0]
 
-        # 4) RISULTATO
         st.subheader("Prediction Result")
         if pred==1:
             st.error("⚠️ Patient is **at risk** of heart failure")
@@ -219,23 +206,18 @@ def run():
         c1.metric("Not at risk", f"{proba[0]*100:.2f} %")
         c2.metric("At risk",     f"{proba[1]*100:.2f} %")
 
-        # ── SHAP EXPLANATION ──
         explainer   = shap.Explainer(model, background_data)
         sv          = explainer(df_input)
-        # estraggo shap values e baseline e li normalizzo a percentuale
-        vals  = sv.values[0, :, 1] * 100    # ora in punti percentuali
+        vals  = sv.values[0, :, 1] * 100    
         base  = sv.base_values[0, 1] * 100
         data  = sv.data[0]
         names = sv.feature_names
-        # top-K
-
 
         idx = np.argsort(np.abs(vals))[::-1]
         vals_top  = vals[idx]
         data_top  = data[idx]
         names_top = [names[i] for i in idx]
 
-        # etichette friendly
 
         pretty = []
         for feat in names_top:
@@ -248,7 +230,6 @@ def run():
         )
 
 
-        # --- prepara l’explainer LIME (come già fatto) ---
         lime_explainer = lime.lime_tabular.LimeTabularExplainer(
             training_data=background_data,
             feature_names=sv.feature_names,
@@ -256,60 +237,47 @@ def run():
             mode='classification'
         )
 
-        # --- spiega l’istanza ---
         i = 0
         exp = lime_explainer.explain_instance(
-            df_input.iloc[i],            # DataFrameRow mantiene i nomi delle feature
+            df_input.iloc[i],            
             model.predict_proba,
             num_features=7
         )
 
-        # Estrai dati per il plot
-        # 1) Probabilità
+
         probs = model.predict_proba(df_input.iloc[[i]])[0]
         df_prob = pd.DataFrame({
             'Classe': ['Not at risk','At risk'],
             'Probabilità': probs
         })
 
-        # 2) Contributi
-        feat_contrib = exp.as_list(label=1)  # lista di tuple (feature_expr, contrib)
+        feat_contrib = exp.as_list(label=1)
         df_contrib = pd.DataFrame(feat_contrib, columns=['feature_expr','contrib'])
         df_contrib['color'] = df_contrib.contrib.apply(lambda x: 'orangered' if x>0 else 'steelblue')
 
-        # --- qui la magia: ricavo il nome “pulito” della feature ---
-        # es. "ST_Slope_Up <= 0.00" -> "ST_Slope_Up"
         df_contrib['feat_name'] = df_contrib['feature_expr'].str.split(' ', 1).str[0]
         df_contrib['feat_pretty'] = df_contrib['feat_name'].map(FEATURE_LABELS).fillna(df_contrib['feat_name'])
 
-        # lista dei soli nomi da cercare nel DataFrame
         feat_names = df_contrib['feat_name'].tolist()
 
-        # 🔍 Filtra solo quelli davvero presenti in df_input.columns
         valid_feat_names = [f for f in feat_names if f in df_input.columns]
 
-        # 3) Valori: estraggo i valori originali per ciascuna feat_name valida
         df_vals = df_input.iloc[i][valid_feat_names].to_frame(name='Value')
 
-        # Prepare & sort: positives first (largest → smallest), then negatives (closest to zero → most negative)
         shap_items = list(zip(single_exp.feature_names,
                             single_exp.values,
                             single_exp.data))
         shap_sorted = sorted(shap_items, key=lambda x: x[1], reverse=True)
 
         
-        # Sort contributions (highest → lowest)
         df_lime_sorted = df_contrib.sort_values(by='contrib', ascending=False).reset_index(drop=True)
-        # ── Interfaccia ──
+
         st.title("🧠 XAI Dashboard")   
 
 
-        # ── Spiegazione unica SHAP+LIME ──
-        # 1) Feature SHAP
         shap_inc = [FEATURE_LABELS.get(f, f) for f, impact, _ in shap_sorted if impact > 0]
         shap_dec = [FEATURE_LABELS.get(f, f) for f, impact, _ in shap_sorted if impact < 0]
 
-        # 2) Feature LIME
         lime_inc = [
             FEATURE_LABELS.get(row.feat_name, row.feat_name)
             for _, row in df_lime_sorted.iterrows()
@@ -322,7 +290,6 @@ def run():
         ]
 
 
-        # 1) Definisco lo stile con supporto light/dark
         st.markdown("""
             <style>
             .explanation-box {
@@ -366,7 +333,6 @@ def run():
             </style>
         """, unsafe_allow_html=True)
 
-        # 2) Costruisco il contenuto in un div per applicare lo stile
         text_unico = (
             "<div class='explanation-box'>"
             "<h3>🔍 Quick Explanation</h3>"
@@ -380,19 +346,12 @@ def run():
             f"<b style=\"color: #64b5f6;\">{'at risk of heart failure' if pred == 1 else 'not at risk of heart failure'}</b></div>"
         )
 
-        # 3) Stampo il box
         st.markdown(text_unico, unsafe_allow_html=True)
 
-
-        # crea 2 tab: 0=SHAP, 1=LIME
         st.markdown("### Advanced interpretation", unsafe_allow_html=True)
 
         tab_shap, tab_lime = st.tabs(["SHAP Explanation", "LIME Explanation"])
         with tab_shap:
-            #stampa la baseline in modo carino
-            # Legend
-
-
             st.markdown("""
             <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;">
                 <span>
@@ -406,7 +365,6 @@ def run():
             </div>
             """, unsafe_allow_html=True)
             
-            # Textual interpretation in order
             for feature, impact, value in shap_sorted:
                 if impact > 0:
                     st.markdown(
@@ -436,7 +394,7 @@ def run():
                 """,
                 unsafe_allow_html=True
             )
-            # Baseline
+
             st.markdown(
                 f"""
                 <div style='color:#827f78; margin-top:0.8%; margin-left:0.5%;'>
@@ -446,7 +404,6 @@ def run():
                 unsafe_allow_html=True
             )
 
-            # Then the force plot
             force_plot = shap.plots.force(
                 explainer.expected_value[1] * 100,
                 single_exp.values,
@@ -459,7 +416,6 @@ def run():
 
         with tab_lime:
 
-            # 1️⃣ Textual interpretation first
             st.markdown(
                 """
                     <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;">
@@ -502,13 +458,14 @@ def run():
                 """,
                 unsafe_allow_html=True
             )
-            # 2️⃣ Then the bar chart
+
             fig_c = go.Figure(go.Bar(
                 x=df_lime_sorted['contrib'],
                 y=df_lime_sorted['feat_pretty'],
                 orientation='h',
                 marker_color=df_lime_sorted['color']
             ))
+
             fig_c.update_layout(
                 title="",
                 xaxis_title="Contribution",
