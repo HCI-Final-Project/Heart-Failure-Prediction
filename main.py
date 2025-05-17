@@ -116,7 +116,7 @@ def run():
     # Advanced mode: sliders for precise input
     if mode == "Advanced":
         age = st.sidebar.slider("Age", 18, 120, 50, help="Patient age in completed years")
-        resting_bp = st.sidebar.slider("Resting BP (mm Hg)", 80, 200, 120, help="Resting systolic BP")
+        resting_bp = st.sidebar.slider("Resting BP (mm Hg)", 80, 200, 120, help="Resting systolic Blood Pressure")
         cholesterol = st.sidebar.slider("Cholesterol (mg/dl)", 100, 400, 200, help="Serum total cholesterol")
         max_hr = st.sidebar.slider("Max HR", 60, 200, 150, help="Peak exercise heart rate")
         oldpeak = st.sidebar.slider(
