@@ -97,5 +97,19 @@ The classification model used (**Random Forest**) was trained using `scikit-lear
 - **Outlier removal** using z-score  
 - **Cross-validation** and hyperparameter tuning  
 
-The app is designed with **Explainable AI (XAI)** in mind. Techniques such as `SHAP`, `LIME`, or the display of feature importance can be integrated (planned for future development).
+---
+
+## Explainable AI (XAI) in the Dashboard
+
+This dashboard integrates two state-of-the-art XAI techniques to help users and clinicians understand the model's predictions:
+
+### SHAP (SHapley Additive exPlanations)
+- **Global and local explanations:** SHAP values show how each feature contributes to increasing or decreasing the risk, both for the individual prediction and across the dataset.
+- **Force plot visualization:** The app displays a SHAP force plot, highlighting the most influential features for the current prediction.
+- **Feature impact listing:** Features are listed in order of their impact, with clear indications of whether they increase or decrease the predicted risk.
+
+### LIME (Local Interpretable Model-agnostic Explanations)
+- **Instance-level explanations:** LIME explains the prediction for the specific patient by approximating the model locally with an interpretable model.
+- **Bar chart visualization:** The dashboard shows a bar chart of the top features that most increased or decreased the risk for the current input.
+- **Textual summary:** The app provides a textual summary of which features contributed most to the prediction.
 
