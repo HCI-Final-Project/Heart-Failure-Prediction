@@ -113,3 +113,7 @@ This dashboard integrates two state-of-the-art XAI techniques to help users and 
 - **Bar chart visualization:** The dashboard shows a bar chart of the top features that most increased or decreased the risk for the current input.
 - **Textual summary:** The app provides a textual summary of which features contributed most to the prediction.
 
+
+### Acknowledgment
+We used artificial intelligence tools as support for writing code and documentation.
+ - [1] OpenAI. ChatGPT: Generative Pre-trained Transformer (versione GPT-4), 2023. Disponibile all’indirizzo: https://chat.openai.com.
