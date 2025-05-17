@@ -51,6 +51,9 @@ def run():
         page_icon="❤️",
         layout="wide",   # ── LAYOUT WIDE per tutto lo spazio disponibile
     )
+    if 'predicted' not in st.session_state:
+        st.session_state.predicted = False
+    
     warnings.simplefilter("ignore", category=FutureWarning)
 
     @st.cache_data
@@ -171,6 +174,8 @@ def run():
 
 
     if st.sidebar.button("Predict"):
+        st.session_state.predicted = True
+
         # --- PREPROCESSING INPUT identico a prima ---
         df_input = pd.DataFrame([{
             "Age":age, "Sex":sex, "ChestPainType":chest_pain,
@@ -512,7 +517,17 @@ def run():
             )
             st.plotly_chart(fig_c, use_container_width=True)
 
-
+    if not st.session_state.predicted:
+            st.markdown(
+                """
+                <div style="text-align:center; margin-top:10rem; color:#827f78;">
+                    <h3>❤️‍🩹 Welcome to the Explainable Heart Failure Risk Prediction</h3>
+                    <p>Select the patient parameters in the sidebar<br>
+                    and click the <strong style="color:#2196F3;">Predict</strong> button to see the result!</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
 if __name__ == "__main__":
     run()
