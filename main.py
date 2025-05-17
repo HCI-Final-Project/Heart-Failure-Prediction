@@ -280,10 +280,11 @@ def run():
         # lista dei soli nomi da cercare nel DataFrame
         feat_names = df_contrib['feat_name'].tolist()
 
-        # 3) Valori: estraggo i valori originali per ciascuna feat_name
-        # costruisco una tabella con indice = nome feature, colonna Valore
-        df_vals = df_input.iloc[i][feat_names] \
-                    .to_frame(name='Value')
+        # 🔍 Filtra solo quelli davvero presenti in df_input.columns
+        valid_feat_names = [f for f in feat_names if f in df_input.columns]
+
+        # 3) Valori: estraggo i valori originali per ciascuna feat_name valida
+        df_vals = df_input.iloc[i][valid_feat_names].to_frame(name='Value')
 
         # Prepare & sort: positives first (largest → smallest), then negatives (closest to zero → most negative)
         shap_items = list(zip(single_exp.feature_names,
@@ -316,49 +317,67 @@ def run():
         ]
 
 
-        # 4) Costruisco il testo
+        # 1) Definisco lo stile con supporto light/dark
         st.markdown("""
-                <style>
-                .explanation-box {
-                    background: #1E1E1E;
-                    border-left: 5px solid #2196F3;
-                    border-radius: 6px;
-                    padding: 16px 20px;
-                    margin: 16px 0;
-                    font-family: 'Segoe UI', Tahoma, sans-serif;
-                    color: #827f78;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-                }
-                .explanation-box h3 {
-                    color: #827f78;
-                    margin-bottom: 12px;
-                }
-                .explanation-box p {
-                    line-height: 1.5em;
-                    margin: 8px 0;
-                }
-                .explanation-box strong {
-                    color: blue;
-                }
-                </style>
+            <style>
+            .explanation-box {
+                border-left: 5px solid #2196F3;
+                border-radius: 8px;
+                padding: 18px 22px;
+                margin: 20px 0;
+                font-family: 'Segoe UI', Tahoma, sans-serif;
+                line-height: 1.6em;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                transition: background 0.3s, color 0.3s;
+            }
+
+            /* Modalità chiara */
+            @media (prefers-color-scheme: light) {
+            .explanation-box {
+                background: #f0f4f8;
+                color: #333;
+            }
+            .explanation-box h3 {
+                color: #1a73e8;
+            }
+            .explanation-box strong {
+                color: #1a73e8;
+            }
+            }
+
+            /* Modalità scura */
+            @media (prefers-color-scheme: dark) {
+            .explanation-box {
+                background: #2a2a2a;
+                color: #cfcfcf;
+            }
+            .explanation-box h3 {
+                color: #90caf9;
+            }
+            .explanation-box strong {
+                color: #64b5f6;
+            }
+            }
+            </style>
         """, unsafe_allow_html=True)
 
+        # 2) Costruisco il contenuto in un div per applicare lo stile
         text_unico = (
-            "<h3>Quick Explanation</h3>"
+            "<div class='explanation-box'>"
+            "<h3>🔍 Quick Explanation</h3>"
             "<strong>1. First methodology</strong>: this provides an overall view by identifying which factors, on average, tend to push the risk up or down among all patients.<br><br>"
-            f" • Factors that tend to increase risk: {', '.join(shap_inc)}.<br>"
-            f" • Factors that tend to decrease risk: {', '.join(shap_dec)}.<br><br>"
+            f"• Factors that tend to increase risk: {', '.join(shap_inc)}.<br>"
+            f"• Factors that tend to decrease risk: {', '.join(shap_dec)}.<br><br>"
             "<strong>2. Second methodology</strong>: this focuses on your individual case, showing which inputs had the strongest influence on your specific prediction.<br><br>"
-            f" • Factors that increased your personal risk: {', '.join(lime_inc)}.<br>"
-            f" • Factors that decreased your personal risk: {', '.join(lime_dec)}.<br><br>"
-            f"Overall, based on these analyses, you are **{'at risk of heart failure' if pred == 1 else 'not at risk of heart failure'}**."
+            f"• Factors that increased your personal risk: {', '.join(lime_inc)}.<br>"
+            f"• Factors that decreased your personal risk: {', '.join(lime_dec)}.<br><br>"
+            f"Overall, based on these analyses, you are: "
+            f"<b style=\"color: #64b5f6;\">{'at risk of heart failure' if pred == 1 else 'not at risk of heart failure'}</b></div>"
         )
 
+        # 3) Stampo il box
+        st.markdown(text_unico, unsafe_allow_html=True)
 
-        st.markdown(
-            f"<div class='explanation-box'>{text_unico}</div>",
-            unsafe_allow_html=True
-        )
 
         # crea 2 tab: 0=SHAP, 1=LIME
         st.markdown("### Advanced interpretation", unsafe_allow_html=True)
