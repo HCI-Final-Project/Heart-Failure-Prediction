@@ -225,8 +225,7 @@ def run():
         # top-K
 
 
-
-        idx = np.argsort(np.abs(vals))[::-1][:7]
+        idx = np.argsort(np.abs(vals))[::-1]
         vals_top  = vals[idx]
         data_top  = data[idx]
         names_top = [names[i] for i in idx]
@@ -327,11 +326,11 @@ def run():
                     padding: 16px 20px;
                     margin: 16px 0;
                     font-family: 'Segoe UI', Tahoma, sans-serif;
-                    color: white;
+                    color: #827f78;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.06);
                 }
                 .explanation-box h3 {
-                    color: white;
+                    color: #827f78;
                     margin-bottom: 12px;
                 }
                 .explanation-box p {
@@ -374,11 +373,11 @@ def run():
             <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;">
                 <span>
                     <span style="color:#E74C3C;">🔺</span>
-                    <span style="color:white; font-weight:bold;">Positive impact</span>
+                    <span style="color:#827f78; font-weight:bold;">Positive impact</span>
                 </span>
                 <span>
                     <span style="color:#3498DB;">🔻</span>
-                    <span style="color:white; font-weight:bold;">Negative impact</span>
+                    <span style="color:#827f78; font-weight:bold;">Negative impact</span>
                 </span>
             </div>
             """, unsafe_allow_html=True)
@@ -389,7 +388,7 @@ def run():
                     st.markdown(
                         f"""
                         <span>
-                            <span style='color:white;'>🔺 <strong>{feature}</strong> - </span>
+                            <span style='color:#827f78;'>🔺 <strong>{feature}</strong> - </span>
                             <span style='color:#E74C3C;'>increases risk by <strong>{impact:.2f}%</strong>.</span>
                         </span>
                         """,
@@ -399,7 +398,7 @@ def run():
                     st.markdown(
                         f"""
                         <span>
-                            <span style='color:white;'>🔻 <strong>{feature}</strong> - </span>
+                            <span style='color:#827f78;'>🔻 <strong>{feature}</strong> - </span>
                             <span style='color:#3498DB;'>decreases risk by <strong>{abs(impact):.2f}%</strong>.</span>
                         </span>
                         """,
@@ -407,7 +406,7 @@ def run():
                     )
             st.markdown(
                 f"""
-                <div style='color:white; margin-top:0.8%; margin-left:0.5%;'>
+                <div style='color:#827f78; margin-top:0.8%; margin-left:0.5%;'>
                     <b>Graphical interpretation</b>
                 </div>
                 """,
@@ -416,7 +415,7 @@ def run():
             # Baseline
             st.markdown(
                 f"""
-                <div style='color:white; margin-top:0.8%; margin-left:0.5%;'>
+                <div style='color:#827f78; margin-top:0.8%; margin-left:0.5%;'>
                     <u><b><i>Baseline -> </i></b>{base:.2f}%</u>
                 </div>
                 """,
@@ -442,11 +441,11 @@ def run():
                     <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;">
                             <span>
                                 <span style="color:#E74C3C;">🔺</span>
-                                <span style="color:white; font-weight:bold;">Positive impact</span>
+                                <span style="color:#827f78; font-weight:bold;">Positive impact</span>
                             </span>
                             <span>
                                 <span style="color:#3498DB;">🔻</span>
-                                <span style="color:white; font-weight:bold;">Negative impact</span>
+                                <span style="color:#827f78; font-weight:bold;">Negative impact</span>
                             </span>
                         
                     </div>
@@ -459,8 +458,8 @@ def run():
                 st.markdown(
                     f"""
                     <span>
-                    <!-- Arrow + feature in white -->
-                    <span style='color:white;'>
+                    <!-- Arrow + feature in #827f78 -->
+                    <span style='color:#827f78;'>
                         {arrow} <strong>{row.feat_pretty} - </strong>
                     </span>
                     <!-- Numeric part in red/blue -->
@@ -471,7 +470,14 @@ def run():
                     """,
                     unsafe_allow_html=True
                 )
-
+            st.markdown(
+                f"""
+                <div style='color:#827f78; margin-top:0.8%; margin-left:0.5%;'>
+                    <b>Graphical interpretation</b>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
             # 2️⃣ Then the bar chart
             fig_c = go.Figure(go.Bar(
                 x=df_lime_sorted['contrib'],
@@ -480,7 +486,7 @@ def run():
                 marker_color=df_lime_sorted['color']
             ))
             fig_c.update_layout(
-                title="Graphical Interpretation",
+                title="",
                 xaxis_title="Contribution",
                 yaxis_title="Feature",
                 margin=dict(l=200, r=20, t=50, b=20)
