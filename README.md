@@ -116,4 +116,4 @@ This dashboard integrates two state-of-the-art XAI techniques to help users and 
 
 ### Acknowledgment
 We used artificial intelligence tools as support for writing code and documentation.
- - [1] OpenAI. ChatGPT: Generative Pre-trained Transformer (versione GPT-4), 2023. Disponibile all’indirizzo: https://chat.openai.com.
+ - [1] OpenAI. ChatGPT: Generative Pre-trained Transformer (versione GPT-4), 2023. https://chat.openai.com.
