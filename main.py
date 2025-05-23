@@ -353,40 +353,37 @@ def run():
                 </style>
             """, unsafe_allow_html=True)
 
-            # Quick explanation summary box (bullet list version)
-            text_unico = (
-                "<div class='explanation-box'>"
-                "<h3>🔍 Quick Explanation</h3>"
-                "<ol>"
-                    "<li>"
-                    "<strong>First methodology</strong>: provides an overall view by identifying which factors, on average, tend to push the risk up or down among all patients."
-                    "<ul>"
-                        f"<li>Factors that tend to increase risk: {', '.join(shap_inc)}.</li>"
-                        f"<li>Factors that tend to decrease risk: {', '.join(shap_dec)}.</li>"
-                    "</ul>"
-                    "</li>"
-                    "<li>"
-                    "<strong>Second methodology</strong>: focuses on your individual case, showing which inputs had the strongest influence on your specific prediction."
-                    "<ul>"
-                        f"<li>Factors that increased your personal risk: {', '.join(lime_inc)}.</li>"
-                        f"<li>Factors that decreased your personal risk: {', '.join(lime_dec)}.</li>"
-                    "</ul>"
-                    "</li>"
-                "</ol>"
-                f"<p><strong>Overall</strong>, based on these analyses, you are: "
-                f"<b style='color: #64b5f6;'>"
-                    f"{'at risk of heart failure' if pred == 1 else 'not at risk of heart failure'}"
-                "</b></p>"
-                "</div>"
-            )
+            # Tabs: Quick Explanation, SHAP, LIME
+            tab_quick, tab_shap, tab_lime = st.tabs(["Quick Explanation", "SHAP Explanation", "LIME Explanation"])
 
+            with tab_quick:
+                text_unico = (
+                    "<div class='explanation-box'>"
+                    "<h3>🔍 Quick Explanation</h3>"
+                    "<ol>"
+                        "<li>"
+                        "<strong>SHAP methodology</strong>: provides an overall view by identifying which factors, on average, tend to push the risk up or down among all patients."
+                        "<ul>"
+                            f"<li>Factors that tend to increase risk: {', '.join(shap_inc) if shap_inc else 'None'}.</li>"
+                            f"<li>Factors that tend to decrease risk: {', '.join(shap_dec) if shap_dec else 'None'}.</li>"
+                        "</ul>"
+                        "</li>"
+                        "<li>"
+                        "<strong>LIME methodology</strong>: focuses on your individual case, showing which inputs had the strongest influence on your specific prediction."
+                        "<ul>"
+                            f"<li>Factors that increased your personal risk: {', '.join(lime_inc) if lime_inc else 'None'}.</li>"
+                            f"<li>Factors that decreased your personal risk: {', '.join(lime_dec) if lime_dec else 'None'}.</li>"
+                        "</ul>"
+                        "</li>"
+                    "</ol>"
+                    f"<p><strong>Overall</strong>, based on these analyses, you are: "
+                    f"<b style='color: #64b5f6;'>"
+                        f"{'at risk of heart failure' if pred == 1 else 'not at risk of heart failure'}"
+                    "</b></p>"
+                    "</div>"
+                )
+                st.markdown(text_unico, unsafe_allow_html=True)
 
-            st.markdown(text_unico, unsafe_allow_html=True)
-
-            st.markdown("### Advanced interpretation", unsafe_allow_html=True)
-
-            # Tabs for SHAP and LIME explanations
-            tab_shap, tab_lime = st.tabs(["SHAP Explanation", "LIME Explanation"])
             with tab_shap:
                 # Legend for SHAP impacts
                 st.markdown("""
