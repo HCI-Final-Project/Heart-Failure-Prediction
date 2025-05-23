@@ -471,12 +471,11 @@ def run():
             """, unsafe_allow_html=True)
 
             # Tabs: Quick Explanation, SHAP, LIME
-            tab_quick, tab_shap, tab_lime = st.tabs(["Quick Explanation", "SHAP Explanation", "LIME Explanation"])
+            tab_quick, tab_shap, tab_lime = st.tabs(["Summary", "SHAP Explanation", "LIME Explanation"])
 
             with tab_quick:
                 text_unico = (
                     "<div class='explanation-box'>"
-                    "<h3>🔍 Quick Explanation</h3>"
                     "<ol>"
                         "<li>"
                         "<strong>SHAP methodology</strong>: provides an overall view by identifying which factors, on average, tend to push the risk up or down among all patients."
@@ -516,28 +515,28 @@ def run():
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # List SHAP feature impacts
-                for feature, impact, value in shap_sorted:
-                    if impact > 0:
-                        st.markdown(
-                            f"""
-                            <span>
-                                <span style='color:#827f78;'>🔺 <strong>{feature}</strong> - </span>
-                                <span style='color:#E74C3C;'>increases risk by <strong>{impact:.2f}%</strong>.</span>
-                            </span>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                    else:
-                        st.markdown(
-                            f"""
-                            <span>
-                                <span style='color:#827f78;'>🔻 <strong>{feature}</strong> - </span>
-                                <span style='color:#3498DB;'>decreases risk by <strong>{abs(impact):.2f}%</strong>.</span>
-                            </span>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                # List SHAP feature impacts (old, now moved below)
+                # for feature, impact, value in shap_sorted:
+                #     if impact > 0:
+                #         st.markdown(
+                #             f"""
+                #             <span>
+                #                 <span style='color:#827f78;'>🔺 <strong>{feature}</strong> - </span>
+                #                 <span style='color:#E74C3C;'>increases risk by <strong>{impact:.2f}%</strong>.</span>
+                #             </span>
+                #             """,
+                #             unsafe_allow_html=True
+                #         )
+                #     else:
+                #         st.markdown(
+                #             f"""
+                #             <span>
+                #                 <span style='color:#827f78;'>🔻 <strong>{feature}</strong> - </span>
+                #                 <span style='color:#3498DB;'>decreases risk by <strong>{abs(impact):.2f}%</strong>.</span>
+                #             </span>
+                #             """,
+                #             unsafe_allow_html=True
+                #         )
                 st.markdown(
                     f"""
                     <div style='color:#827f78; margin-top:0.8%; margin-left:0.5%;'>
@@ -564,13 +563,44 @@ def run():
                     feature_names=single_exp.feature_names,
                     matplotlib=False
                 )
-                st_shap(force_plot, height=300, width=900)
+                st_shap(force_plot, height=320, width=900)
+
+                st.markdown(
+                    """
+                    <div style="display: flex; justify-content: flex-start; gap: 3rem; background: #e3f2fd; border-radius: 8px; padding: 10px 18px; margin-top: -10rem;">
+                        <div>
+                    """
+                    +
+                    "".join(
+                        f"""<div style="margin-bottom:2px;">
+                            <span style="color:#1565c0;font-weight:bold;">&#x25BC; <b>{feature}</b></span>
+                            <span style="color:#222;">– decreases risk by </span>
+                            <span style="color:#1565c0;font-weight:bold;">{abs(impact):.0f}%</span>
+                        </div>"""
+                        for feature, impact, _ in shap_sorted if impact < 0
+                    )
+                    +
+                    "</div><div>"
+                    +
+                    "".join(
+                        f"""<div style="margin-bottom:2px;">
+                            <span style="color:#c62828;font-weight:bold;">&#x25B2; <b>{feature}</b></span>
+                            <span style="color:#222;">– increases risk by </span>
+                            <span style="color:#c62828;font-weight:bold;">{impact:.0f}%</span>
+                        </div>"""
+                        for feature, impact, _ in shap_sorted if impact > 0
+                    )
+                    +
+                    "</div></div>"
+                    ,
+                    unsafe_allow_html=True
+                )
 
             with tab_lime:
                 # Legend for LIME impacts
                 st.markdown(
                     """
-                        <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;">
+                        <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;margin-top:0.1rem;">
                                 <span>
                                     <span style="color:#E74C3C;">🔺</span>
                                     <span style="color:#827f78; font-weight:bold;">Positive impact</span>
@@ -583,26 +613,26 @@ def run():
                         </div>
                     """
                 , unsafe_allow_html=True)
-                # List LIME feature impacts
-                for _, row in df_lime_sorted.iterrows():
-                    color = "#E74C3C" if row.contrib > 0 else "#3498DB"
-                    arrow = "🔺" if row.contrib > 0 else "🔻"
-                    verb = "increases" if row.contrib > 0 else "decreases"
-                    st.markdown(
-                        f"""
-                        <span>
-                        <!-- Arrow + feature in #827f78 -->
-                        <span style='color:#827f78;'>
-                            {arrow} <strong>{row.feat_pretty} - </strong>
-                        </span>
-                        <!-- Numeric part in red/blue -->
-                        <span style='color:{color};'>
-                            {verb} risk by <strong>{abs(row.contrib):.2f}</strong> points.
-                        </span>
-                        </span>
-                        """,
-                        unsafe_allow_html=True
-                    )
+                # List LIME feature impacts (old, now moved below)
+                # for _, row in df_lime_sorted.iterrows():
+                #     color = "#E74C3C" if row.contrib > 0 else "#3498DB"
+                #     arrow = "🔺" if row.contrib > 0 else "🔻"
+                #     verb = "increases" if row.contrib > 0 else "decreases"
+                #     st.markdown(
+                #         f"""
+                #         <span>
+                #         <!-- Arrow + feature in #827f78 -->
+                #         <span style='color:#827f78;'>
+                #             {arrow} <strong>{row.feat_pretty} - </strong>
+                #         </span>
+                #         <!-- Numeric part in red/blue -->
+                #         <span style='color:{color};'>
+                #             {verb} risk by <strong>{abs(row.contrib):.2f}</strong> points.
+                #         </span>
+                #         </span>
+                #         """,
+                #         unsafe_allow_html=True
+                #     )
                 st.markdown(
                     f"""
                     <div style='color:#827f78; margin-top:0.8%; margin-left:0.5%;'>
@@ -628,7 +658,38 @@ def run():
                 )
                 st.plotly_chart(fig_c, use_container_width=True)
 
-    # If no prediction yet, show welcome message
+                # --- LIME factors summary as in screenshot ---
+                st.markdown(
+                    """
+                    <div style="display: flex; justify-content: flex-start; gap: 3rem; background: #e3f2fd; border-radius: 8px; padding: 10px 18px; margin-top: 18px;">
+                        <div>
+                    """
+                    +
+                    "".join(
+                        f"""<div style="margin-bottom:2px;">
+                            <span style="color:#1565c0;font-weight:bold;">&#x25BC; <b>{row.feat_pretty}</b></span>
+                            <span style="color:#222;">– decreases risk by </span>
+                            <span style="color:#1565c0;font-weight:bold;">{abs(row.contrib):.0f}</span>
+                        </div>"""
+                        for _, row in df_lime_sorted.iterrows() if row.contrib < 0
+                    )
+                    +
+                    "</div><div>"
+                    +
+                    "".join(
+                        f"""<div style="margin-bottom:2px;">
+                            <span style="color:#c62828;font-weight:bold;">&#x25B2; <b>{row.feat_pretty}</b></span>
+                            <span style="color:#222;">– increases risk by </span>
+                            <span style="color:#c62828;font-weight:bold;">{row.contrib:.0f}</span>
+                        </div>"""
+                        for _, row in df_lime_sorted.iterrows() if row.contrib > 0
+                    )
+                    +
+                    "</div></div>"
+                    ,
+                    unsafe_allow_html=True
+                )
+# If no prediction yet, show welcome message
     if not st.session_state.predicted:
             st.markdown(
                 """
