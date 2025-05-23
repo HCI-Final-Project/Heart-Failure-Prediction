@@ -216,13 +216,130 @@ def run():
 
             # Display prediction result
             st.subheader("Prediction Result")
-            if pred==1:
-                st.error("⚠️ Patient is **at risk** of heart failure")
+            # --- Custom prediction bar as in the image ---
+            # Calculate values
+            not_risk_pct = proba[0] * 100
+            risk_pct = proba[1] * 100
+            threshold = 50  # central threshold
+
+            # Decide message and color
+            if abs(not_risk_pct - risk_pct) < 15:
+                msg = "⚠️ It seems healthy but it looks is on risk, review it"
+                box_color = "#ffe082"
+                font_color = "#333"
+            elif pred == 1:
+                msg = "⚠️ Patient is at risk of heart failure"
+                box_color = "#ffb3b3"
+                font_color = "#b71c1c"
             else:
-                st.success("✅ Patient is **not at risk**")
-            c1,c2 = st.columns(2)
-            c1.metric("Not at risk", f"{proba[0]*100:.2f} %")
-            c2.metric("At risk",     f"{proba[1]*100:.2f} %")
+                msg = "✅ Patient is not at risk"
+                box_color = "#c8e6c9"
+                font_color = "#1b5e20"
+
+            # Show message in a rounded box
+            st.markdown(
+                f"""
+                <div style="
+                    background: {box_color};
+                    color: {font_color};
+                    border-radius: 12px;
+                    border: 1.5px solid #bbb;
+                    padding: 12px 18px;
+                    margin-bottom: 18px;
+                    font-size: 1.1rem;
+                    font-weight: 500;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+                    display: inline-block;
+                ">
+                    {msg}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            # Custom horizontal bar with Plotly
+            fig = go.Figure()
+
+            # Not at risk bar (left)
+            fig.add_trace(go.Bar(
+                x=[not_risk_pct],
+                y=[''],
+                orientation='h',
+                marker=dict(color='#388e3c'),
+                name='Not a risk',
+                hoverinfo='skip',
+                width=0.5,
+                showlegend=False,
+                text=[f"{not_risk_pct:.1f} %"],
+                textposition='inside',
+                insidetextanchor='middle',
+                textfont=dict(color='white', size=18)
+            ))
+
+            # At risk bar (right)
+            fig.add_trace(go.Bar(
+                x=[risk_pct],
+                y=[''],
+                orientation='h',
+                marker=dict(color='#b3541a'),
+                name='At risk',
+                hoverinfo='skip',
+                width=0.5,
+                showlegend=False,
+                text=[f"{risk_pct:.1f} %"],
+                textposition='inside',
+                insidetextanchor='middle',
+                textfont=dict(color='white', size=18)
+            ))
+
+            # Add threshold marker (vertical line at 50%)
+            fig.add_shape(
+                type="line",
+                x0=threshold, x1=threshold,
+                y0=-0.4, y1=0.4,
+                line=dict(color="black", width=3),
+                xref='x', yref='y'
+            )
+
+            # Add labels above the bar
+            fig.add_annotation(
+                x=not_risk_pct/2,
+                y=0.25,
+                text="",
+                showarrow=False,
+                font=dict(color="#1b5e20", size=16)
+            )
+            fig.add_annotation(
+                x=not_risk_pct + risk_pct/2,
+                y=0.25,
+                text="",
+                showarrow=False,
+                font=dict(color="#b3541a", size=16)
+            )
+
+            # Layout settings
+            fig.update_layout(
+                barmode='stack',
+                height=90,
+                margin=dict(l=10, r=10, t=10, b=10),
+                xaxis=dict(
+                    range=[0, 100],
+                    showticklabels=False,
+                    showgrid=False,
+                    zeroline=False,
+                    fixedrange=True
+                ),
+                yaxis=dict(
+                    showticklabels=False,
+                    showgrid=False,
+                    zeroline=False,
+                    fixedrange=True
+                ),
+                plot_bgcolor='#e3f2fd',
+                paper_bgcolor='#e3f2fd',
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
 
             # SHAP explanation
             explainer   = shap.Explainer(model, background_data)
