@@ -544,14 +544,14 @@ def run():
                     # Legend for SHAP impacts
                     st.markdown("""
                     <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;">
-                        <span>
-                            <span style="color:#E74C3C;">🔺</span>
-                            <span style="color:#827f78; font-weight:bold;">Positive impact</span>
-                        </span>
-                        <span>
-                            <span style="color:#3498DB;">🔻</span>
-                            <span style="color:#827f78; font-weight:bold;">Negative impact</span>
-                        </span>
+                                    <span>
+                                        <span style="color:#E74C3C;">&#x25B2</span>
+                                        <span style="color:#827f78; font-weight:bold;">Positive impact</span>
+                                    </span>
+                                    <span>
+                                        <span style="color:#3498DB;">&#x25BC;</span>
+                                        <span style="color:#827f78; font-weight:bold;">Negative impact</span>
+                                    </span>
                     </div>
                     """, unsafe_allow_html=True)
                     
@@ -642,11 +642,11 @@ def run():
                         """
                             <div style="display:flex; justify-content:center; gap:2rem; margin-bottom:1rem;margin-top:0.1rem;">
                                     <span>
-                                        <span style="color:#E74C3C;">🔺</span>
+                                        <span style="color:#E74C3C;">&#x25B2</span>
                                         <span style="color:#827f78; font-weight:bold;">Positive impact</span>
                                     </span>
                                     <span>
-                                        <span style="color:#3498DB;">🔻</span>
+                                        <span style="color:#3498DB;">&#x25BC;</span>
                                         <span style="color:#827f78; font-weight:bold;">Negative impact</span>
                                     </span>
                                 
