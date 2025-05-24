@@ -736,47 +736,39 @@ def run():
                         unsafe_allow_html=True
                     )
             else:  # esci dopo il flusso Advanced
-                # Age points
+                # --- Age points ---
                 age_table = [
                     (20, 29, 0), (30, 39, 5), (40, 49, 10), (50, 59, 15),
                     (60, 69, 20), (70, 79, 25), (80, 89, 30)
                 ]
                 def get_age_points(a):
-                    """Return points based on age bracket."""
                     for lo, hi, pts in age_table:
                         if lo <= a <= hi:
                             return pts
                     return 0
 
-                # --- Systolic BP points (aligned to new thresholds) ---
-                sbp_table = [
-                    (0, 119,   0),   # Normal
-                    (120, 139,  5),  # Prehypertension
-                    (140, 159, 10),  # Hypertension Stage 1
-                    (160, 179, 15),  # Hypertension Stage 2
-                    (180, 1000,20)   # Hypertensive crisis
-                ]
-                def get_sbp_points(sbp):
-                    """Return points based on updated systolic BP categories."""
-                    for lo, hi, pts in sbp_table:
-                        if lo <= sbp <= hi:
-                            return pts
-                    return 0
+                # --- Blood Pressure Category and Points (from table) ---
+                def bp_category(sbp, dbp):
+                    if sbp > 180 or dbp > 110:
+                        return "Hypertensive Crisis"
+                    elif sbp >= 160 or dbp >= 100:
+                        return "Hypertension Stage 2"
+                    elif sbp >= 140 or dbp >= 90:
+                        return "Hypertension Stage 1"
+                    elif sbp >= 120 or dbp >= 80:
+                        return "Prehypertension"
+                    else:
+                        return "Normal"
 
-                # --- Diastolic BP points (aligned to new thresholds) ---
-                dbp_table = [
-                    (0, 79,    0),   # Normal
-                    (80, 89,   5),   # Prehypertension
-                    (90, 99,  10),   # Hypertension Stage 1
-                    (100, 109,15),   # Hypertension Stage 2
-                    (110, 1000,20)   # Hypertensive crisis
-                ]
-                def get_dbp_points(dbp):
-                    """Return points based on updated diastolic BP categories."""
-                    for lo, hi, pts in dbp_table:
-                        if lo <= dbp <= hi:
-                            return pts
-                    return 0
+                def bp_points(cat):
+                    # More points for higher risk (red), less for green
+                    return {
+                        "Normal": 0,
+                        "Prehypertension": 5,
+                        "Hypertension Stage 1": 15,
+                        "Hypertension Stage 2": 25,
+                        "Hypertensive Crisis": 40
+                    }[cat]
 
                 # --- Pulse rate points (unchanged) ---
                 pulse_table = [
@@ -784,7 +776,6 @@ def run():
                     (90,104, 10), (105,120,15), (121,1000,20)
                 ]
                 def get_pulse_points(p):
-                    """Return points based on resting heart rate."""
                     for lo, hi, pts in pulse_table:
                         if lo <= p <= hi:
                             return pts
@@ -792,60 +783,47 @@ def run():
 
                 # --- Diabetes points (unchanged) ---
                 def get_diab_points(f):
-                    """Return points if diabetes is present."""
                     return 12 if f == "Yes" else 0
+
+                # --- Calculate BP category and points ---
+                bp_cat = bp_category(systolic_bp, diastolic_bp)
+                bp_pts = bp_points(bp_cat)
 
                 # --- Sum all points ---
                 total = (
                     get_age_points(age)
-                    + get_sbp_points(systolic_bp)
-                    + get_dbp_points(diastolic_bp)
+                    + bp_pts
                     + get_pulse_points(pulse)
                     + get_diab_points(fasting_bs)
                 )
 
-                # --- Map total points to 10-year CHD risk percentage (unchanged) ---
-                risk_map = {
-                    range(0, 30):   "5%",     # 0–29 points
-                    range(30, 60):  "15%",    # 30–59 points
-                    range(60, 90):  "30%",    # 60–89 points
-                    range(90, 120): "45%",    # 90–119 points
-                    range(120, 1000):">60%"   # ≥120 points
-                }
-                for pts_range, pct in risk_map.items():
-                    if total in pts_range:
-                        risk_pct = pct
-                        break
-
-                # --- Determine risk category (unchanged) ---
-                num_risk = float(risk_pct.strip("%<>"))
-                if num_risk < 10:
+                # --- Map total points to risk: green (low), yellow (balanced), red (high) ---
+                # Aggressive mapping: green (0-9), yellow (10-24), orange (25-39), red (40+)
+                if total <= 9:
+                    risk_pct = "5%"
                     level = "Low risk"
-                elif num_risk < 40:
+                elif total <= 24:
+                    risk_pct = "15%"
+                    level = "Balanced risk"
+                elif total <= 39:
+                    risk_pct = "35%"
                     level = "Intermediate risk"
                 else:
+                    risk_pct = "60%"
                     level = "High risk"
 
-                # Prepare risk percentage for display
-                risk_pct_num  = num_risk
+                num_risk = float(risk_pct.strip("%<>"))
                 not_risk_pct = 100 - num_risk
 
-                # Thresholds and messages
-                VERY_HIGH, HIGH, MODERATE, BORDER, MARGIN = 90,70,55,50,5
-                if risk_pct_num >= VERY_HIGH:
-                    msg, box_color, font_color = "⚠️ Very high confidence: at risk", "#ef9a9a", "#b71c1c"
-                elif risk_pct_num >= HIGH:
+                # Thresholds and messages: green = not at risk, red = at risk, yellow = balanced
+                if num_risk >= 50:
+                    msg, box_color, font_color = "⚠️ Very high risk: immediate attention needed", "#ef9a9a", "#b71c1c"
+                elif num_risk >= 35:
                     msg, box_color, font_color = "⚠️ High risk: likely at risk", "#ffb3b3", "#b71c1c"
-                elif risk_pct_num > MODERATE:
-                    msg, box_color, font_color = "⚠️ Moderate risk — consider tests", "#ffcc80", "#e65100"
-                elif abs(risk_pct_num - BORDER) <= MARGIN:
-                    msg, box_color, font_color = "⚠️ Near 50% — review further", "#ffe082", "#333"
-                elif not_risk_pct >= VERY_HIGH:
-                    msg, box_color, font_color = "✅ Very high confidence: not at risk", "#a5d6a7", "#1b5e20"
-                elif not_risk_pct >= HIGH:
-                    msg, box_color, font_color = "✅ Low risk: likely safe", "#c8e6c9", "#1b5e20"
+                elif num_risk >= 15:
+                    msg, box_color, font_color = "⚠️ Balanced risk — monitor closely", "#ffe082", "#333"
                 else:
-                    msg, box_color, font_color = "✅ Slightly leaning towards no risk", "#e3f2fd", "#1565c0"
+                    msg, box_color, font_color = "✅ Low risk: patient is likely safe", "#c8e6c9", "#1b5e20"
 
                 # Show message in a rounded box
                 st.markdown(f"""
@@ -874,9 +852,9 @@ def run():
                     textfont=dict(color='white', size=18)
                 ))
                 fig.add_trace(go.Bar(
-                    x=[risk_pct_num], y=[''], orientation='h',
+                    x=[num_risk], y=[''], orientation='h',
                     marker=dict(color='#b3541a'), showlegend=False,
-                    text=[f"{risk_pct_num:.1f} %"], textposition='inside', insidetextanchor='middle',
+                    text=[f"{num_risk:.1f} %"], textposition='inside', insidetextanchor='middle',
                     textfont=dict(color='white', size=18)
                 ))
                 fig.add_shape(type="line", x0=50, x1=50, y0=-0.4, y1=0.4,
@@ -896,10 +874,8 @@ def run():
                 abnormal = []
                 if get_age_points(age) >= 10:
                     abnormal.append(f"Age: **{age} years** (→ {get_age_points(age)} points)")
-                if get_sbp_points(systolic_bp) > 0:
-                    abnormal.append(f"Systolic BP: **{systolic_bp} mm Hg** (→ {get_sbp_points(systolic_bp)} points)")
-                if get_dbp_points(diastolic_bp) > 0:
-                    abnormal.append(f"Diastolic BP: **{diastolic_bp} mm Hg** (→ {get_dbp_points(diastolic_bp)} points)")
+                if bp_pts > 0:
+                    abnormal.append(f"Blood Pressure: **{systolic_bp}/{diastolic_bp} mm Hg** ({bp_cat}, → {bp_pts} points)")
                 if get_pulse_points(pulse) > 0:
                     abnormal.append(f"Pulse rate: **{pulse} bpm** (→ {get_pulse_points(pulse)} points)")
                 if fasting_bs == "Yes":
@@ -936,16 +912,14 @@ def run():
 
                     # Verifica anomalie per ciascun campo
                     age_bad   = get_age_points(age) >= 10
-                    sbp_bad   = get_sbp_points(systolic_bp) > 0
-                    dbp_bad   = get_dbp_points(diastolic_bp) > 0
+                    bp_bad    = bp_pts > 0
                     pulse_bad = get_pulse_points(pulse) > 0
                     diab_bad  = fasting_bs == "Yes"
 
                     # Costruisce la lista HTML
                     list_items = f"""
                     <li>{dot_html(age_bad)} Age: {age} years</li>
-                    <li>{dot_html(sbp_bad)} Systolic BP: {systolic_bp} mm Hg</li>
-                    <li>{dot_html(dbp_bad)} Diastolic BP: {diastolic_bp} mm Hg</li>
+                    <li>{dot_html(bp_bad)} Blood Pressure: {systolic_bp}/{diastolic_bp} mm Hg ({bp_cat})</li>
                     <li>{dot_html(pulse_bad)} Pulse rate: {pulse} bpm</li>
                     <li>{dot_html(diab_bad)} Diabetes: {'Yes' if diab_bad else 'No'}</li>
                     """
