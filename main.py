@@ -141,42 +141,48 @@ def run():
         exercise_angina = st.sidebar.selectbox("Exercise Angina", ["Yes", "No"], help="Exercise-induced angina")
         st_slope = st.sidebar.selectbox("ST Slope", ["Upsloping", "Flat", "Downsloping"], help="Slope of ST segment")
     else:
-        # Base mode: only core Framingham factors with finer ranges and tooltips
+        # Base mode: only age, systolic & diastolic BP, pulse rate, and diabetes
         def midpoint(label, opts, help_text=None):
-            return (
-                lambda sel=st.sidebar.selectbox(label, opts, help=help_text):
-                    (lambda low, high: (low + high) / 2)(*map(float, sel.split("-")))
-            )()
+            """Show a selectbox with ranges and return the midpoint value."""
+            sel = st.sidebar.selectbox(label, opts, help=help_text)
+            low, high = map(float, sel.split("-"))
+            return (low + high) / 2
 
+        # 1) Age range in 10-year bands
         age = midpoint(
             "Age range (years)",
             ["20-29","30-39","40-49","50-59","60-69","70-79","80-89"],
             help_text="Select the range that includes the patient's age"
         )
 
-        resting_bp = midpoint(
+        # 2) Systolic blood pressure range
+        systolic_bp = midpoint(
             "Systolic BP range (mm Hg)",
             ["90-109","110-129","130-149","150-169","170-189","190-210"],
             help_text="Choose the systolic blood pressure measured at rest"
         )
 
-        cholesterol = midpoint(
-            "Total cholesterol range (mg/dL)",
-            ["100-129","130-159","160-189","190-219","220-249","250-279","280-310"],
-            help_text="Select the total cholesterol level from the most recent blood test"
+        # 3) Diastolic blood pressure range
+        diastolic_bp = midpoint(
+            "Diastolic BP range (mm Hg)",
+            ["50-59","60-69","70-79","80-89","90-99","100-110"],
+            help_text="Choose the diastolic blood pressure measured at rest"
         )
 
-        sex = st.sidebar.selectbox(
-            "Sex",
-            ["Male","Female"],
-            help="Patient’s biological sex"
+        # 4) Resting heart rate (pulse) range
+        pulse = midpoint(
+            "Heart rate (bpm)",
+            ["40-59","60-74","75-89","90-104","105-120","121-140"],
+            help_text="Select resting pulse rate in beats per minute"
         )
 
+        # 5) Diabetes indicator
         fasting_bs = st.sidebar.selectbox(
-            "Diabetes (Fasting blood sugar > 120 mg/dL)",
+            "Diabetes (Fasting blood sugar >120 mg/dL)",
             ["No","Yes"],
-            help="‘Yes’ if fasting glucose exceeded 120 mg/dL"
+            help="Select 'Yes' if fasting glucose exceeded 120 mg/dL"
         )
+
 
     # When the user clicks "Predict"
     if st.sidebar.button("Predict"):
@@ -730,88 +736,93 @@ def run():
                         unsafe_allow_html=True
                     )
             else:  # esci dopo il flusso Advanced
-                # 1) punti età (fasce 5-year, fortemente penalizzate dopo i 40 anni)
-                age_table = {
-                    "Male": [
-                        (20,24,-5),(25,29,0),(30,34,5),(35,39,10),(40,44,15),
-                        (45,49,20),(50,54,25),(55,59,30),(60,64,35),(65,69,40),
-                        (70,74,45),(75,79,50),(80,84,55),(85,89,60)
-                    ],
-                    "Female": [
-                        (20,24,-5),(25,29,0),(30,34,5),(35,39,10),(40,44,15),
-                        (45,49,20),(50,54,25),(55,59,30),(60,64,35),(65,69,40),
-                        (70,74,45),(75,79,50),(80,84,55),(85,89,60)
-                    ],
-                }
-                def get_age_points(a, s):
-                    for lo, hi, pt in age_table[s]:
+                # Age points
+                age_table = [
+                    (20,29,0),(30,39,5),(40,49,10),(50,59,15),
+                    (60,69,20),(70,79,25),(80,89,30)
+                ]
+                def get_age_points(a):
+                    """Return points based on age bracket."""
+                    for lo, hi, pt in age_table:
                         if lo <= a <= hi:
                             return pt
                     return 0
 
-                # 2) punti colesterolo (step 20, punteggi maggiorati)
-                chol_table = {
-                    "Male":   [(0,179,0),(180,199,5),(200,219,10),(220,239,15),(240,259,20),(260,279,25),(280,1000,30)],
-                    "Female": [(0,179,0),(180,199,5),(200,219,10),(220,239,15),(240,259,20),(260,279,25),(280,1000,30)],
-                }
-                def get_chol_points(c, s):
-                    for lo, hi, pt in chol_table[s]:
-                        if lo <= c <= hi:
-                            return pt
-                    return 0
-
-                # 3) punti pressione sistolica (step 10, pesi maggiori)
+                # Systolic BP points
                 sbp_table = [
                     (0,109,0),(110,119,5),(120,129,10),(130,139,15),
                     (140,149,20),(150,159,25),(160,169,30),(170,1000,35)
                 ]
                 def get_sbp_points(sbp):
+                    """Return points based on systolic blood pressure."""
                     for lo, hi, pt in sbp_table:
                         if lo <= sbp <= hi:
                             return pt
                     return 0
 
-                # 4) punti diabete (triplicati)
+                # Diastolic BP points
+                dbp_table = [
+                    (0,59,0),(60,69,4),(70,79,8),(80,89,12),(90,99,16),(100,1000,20)
+                ]
+                def get_dbp_points(dbp):
+                    """Return points based on diastolic blood pressure."""
+                    for lo, hi, pt in dbp_table:
+                        if lo <= dbp <= hi:
+                            return pt
+                    return 0
+
+                # Pulse rate points
+                pulse_table = [
+                    (0,59,5),(60,74,0),(75,89,5),(90,104,10),(105,120,15),(121,1000,20)
+                ]
+                def get_pulse_points(p):
+                    """Return points based on resting heart rate."""
+                    for lo, hi, pt in pulse_table:
+                        if lo <= p <= hi:
+                            return pt
+                    return 0
+
+                # Diabetes points (tripled weight)
                 def get_diab_points(f):
+                    """Return points if diabetes is present."""
                     return 12 if f == "Yes" else 0
 
-                # Somma totale
+                # Somma totale punti
                 total = (
-                    get_age_points(age, sex)
-                    + get_chol_points(cholesterol, sex)
-                    + get_sbp_points(resting_bp)
+                    get_age_points(age)
+                    + get_sbp_points(systolic_bp)
+                    + get_dbp_points(diastolic_bp)
+                    + get_pulse_points(pulse)
                     + get_diab_points(fasting_bs)
                 )
 
-                # Mappa punti → % rischio (fasce molto aggressive)
+                # Mappa punti → rischio a 10 anni
                 risk_map = {
-                    range(-5,20):  "5%",    # 0–19
-                    range(20,40):  "10%",   # 20–39
-                    range(40,60):  "20%",   # 40–59
-                    range(60,80):  "30%",   # 60–79
-                    range(80,100): "40%",   # 80–99
-                    range(100,200):">50%",  # ≥100
+                    range(0,30):  "5%",     # 0–29 punti
+                    range(30,60): "15%",    # 30–59 punti
+                    range(60,90): "30%",    # 60–89 punti
+                    range(90,120):"45%",    # 90–119 punti
+                    range(120,1000):">60%", # ≥120 punti
                 }
                 for k, v in risk_map.items():
                     if total in k:
                         risk_pct = v
                         break
 
-                # Definisci livello
+                # Categoria di rischio
                 num_risk = float(risk_pct.strip("%<>"))
                 if num_risk < 10:
                     level = "Low risk"
-                elif num_risk < 30:
+                elif num_risk < 40:
                     level = "Intermediate risk"
                 else:
                     level = "High risk"
 
+                # Prepare risk percentage for display
+                risk_pct_num  = num_risk
+                not_risk_pct = 100 - num_risk
 
-                # Scegli messaggio e colori esattamente come in Advanced
-                risk_pct_num  = num_risk       # es. 1.0
-                not_risk_pct = 100 - num_risk  # es. 99.0
-
-                # Soglie
+                # Thresholds and messages
                 VERY_HIGH, HIGH, MODERATE, BORDER, MARGIN = 90,70,55,50,5
                 if risk_pct_num >= VERY_HIGH:
                     msg, box_color, font_color = "⚠️ Very high confidence: at risk", "#ef9a9a", "#b71c1c"
@@ -828,7 +839,7 @@ def run():
                 else:
                     msg, box_color, font_color = "✅ Slightly leaning towards no risk", "#e3f2fd", "#1565c0"
 
-                # Mostra il box
+                # Show message in a rounded box
                 st.markdown(f"""
                     <div style="
                         background: {box_color};
@@ -846,47 +857,47 @@ def run():
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Barra orizzontale Plotly
+                # Custom horizontal bar with Plotly
                 fig = go.Figure()
                 fig.add_trace(go.Bar(
-                    x=[not_risk_pct],
-                    y=[''], orientation='h',
+                    x=[not_risk_pct], y=[''], orientation='h',
                     marker=dict(color='#388e3c'), showlegend=False,
                     text=[f"{not_risk_pct:.1f} %"], textposition='inside', insidetextanchor='middle',
                     textfont=dict(color='white', size=18)
                 ))
                 fig.add_trace(go.Bar(
-                    x=[risk_pct_num],
-                    y=[''], orientation='h',
+                    x=[risk_pct_num], y=[''], orientation='h',
                     marker=dict(color='#b3541a'), showlegend=False,
                     text=[f"{risk_pct_num:.1f} %"], textposition='inside', insidetextanchor='middle',
                     textfont=dict(color='white', size=18)
                 ))
-                fig.add_shape(type="line", x0=50, x1=50,y0=-0.4,y1=0.4,
-                            line=dict(color="black",width=3), xref='x', yref='y')
-                fig.update_layout(barmode='stack', height=90, margin=dict(l=10,r=10,t=10,b=10),
-                                xaxis=dict(range=[0,100],showticklabels=False,showgrid=False,zeroline=False),
-                                yaxis=dict(showticklabels=False,showgrid=False,zeroline=False),
-                                plot_bgcolor='#e3f2fd', paper_bgcolor='#e3f2fd')
+                fig.add_shape(type="line", x0=50, x1=50, y0=-0.4, y1=0.4,
+                            line=dict(color="black", width=3), xref='x', yref='y')
+                fig.update_layout(
+                    barmode='stack', height=90, margin=dict(l=10, r=10, t=10, b=10),
+                    xaxis=dict(range=[0,100], showticklabels=False, showgrid=False, zeroline=False),
+                    yaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
+                    plot_bgcolor='#e3f2fd', paper_bgcolor='#e3f2fd'
+                )
                 st.plotly_chart(fig, use_container_width=True)
 
                 # 🧠 XAI Dashboard – Summary
                 st.title("🧠 XAI Dashboard")
 
-                # Calculate warning notes
+                # Note sulle anomalie
                 abnormal = []
-                if get_age_points(age, sex) >= 10:
-                    abnormal.append(f"Age: **{age} years** (→ {get_age_points(age,sex)} points)")
-                if cholesterol >= 240:
-                    abnormal.append(f"Cholesterol: **{cholesterol} mg/dL**")
-                if resting_bp >= 140:
-                    abnormal.append(f"Systolic BP: **{resting_bp} mm Hg**")
+                if get_age_points(age) >= 10:
+                    abnormal.append(f"Age: **{age} years** (→ {get_age_points(age)} points)")
+                if get_sbp_points(systolic_bp) > 0:
+                    abnormal.append(f"Systolic BP: **{systolic_bp} mm Hg** (→ {get_sbp_points(systolic_bp)} points)")
+                if get_dbp_points(diastolic_bp) > 0:
+                    abnormal.append(f"Diastolic BP: **{diastolic_bp} mm Hg** (→ {get_dbp_points(diastolic_bp)} points)")
+                if get_pulse_points(pulse) > 0:
+                    abnormal.append(f"Pulse rate: **{pulse} bpm** (→ {get_pulse_points(pulse)} points)")
                 if fasting_bs == "Yes":
-                    abnormal.append("Diabetes: **Yes**")
+                    abnormal.append("Diabetes: **Yes** (→ 12 points)")
 
-                # Prepare two columns: left for summary box, right for details
                 col1, col2 = st.columns([1, 2])
-
                 with col1:
                     st.markdown(f"""
                     <div style="
@@ -906,9 +917,10 @@ def run():
                     <div style="padding:12px 16px; background:#f8f9fa; border-radius:8px;">
                         <p>The patient scored <strong>{total} points</strong> according to the Framingham tables:</p>
                         <ul style="margin-top:0.5rem; padding-left:1.2rem;">
-                            <li>Age: {age} years → {get_age_points(age,sex)} points</li>
-                            <li>Cholesterol: {cholesterol} mg/dL → {get_chol_points(cholesterol,sex)} points</li>
-                            <li>Systolic BP: {resting_bp} mm Hg → {get_sbp_points(resting_bp)} points</li>
+                            <li>Age: {age} years → {get_age_points(age)} points</li>
+                            <li>Systolic BP: {systolic_bp} mm Hg → {get_sbp_points(systolic_bp)} points</li>
+                            <li>Diastolic BP: {diastolic_bp} mm Hg → {get_dbp_points(diastolic_bp)} points</li>
+                            <li>Pulse rate: {pulse} bpm → {get_pulse_points(pulse)} points</li>
                             <li>Diabetes: {'Yes' if fasting_bs=='Yes' else 'No'} → {get_diab_points(fasting_bs)} points</li>
                         </ul>
                         {(
