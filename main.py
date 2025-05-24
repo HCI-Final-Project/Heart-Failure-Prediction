@@ -738,56 +738,64 @@ def run():
             else:  # esci dopo il flusso Advanced
                 # Age points
                 age_table = [
-                    (20,29,0),(30,39,5),(40,49,10),(50,59,15),
-                    (60,69,20),(70,79,25),(80,89,30)
+                    (20, 29, 0), (30, 39, 5), (40, 49, 10), (50, 59, 15),
+                    (60, 69, 20), (70, 79, 25), (80, 89, 30)
                 ]
                 def get_age_points(a):
                     """Return points based on age bracket."""
-                    for lo, hi, pt in age_table:
+                    for lo, hi, pts in age_table:
                         if lo <= a <= hi:
-                            return pt
+                            return pts
                     return 0
 
-                # Systolic BP points
+                # --- Systolic BP points (aligned to new thresholds) ---
                 sbp_table = [
-                    (0,109,0),(110,119,5),(120,129,10),(130,139,15),
-                    (140,149,20),(150,159,25),(160,169,30),(170,1000,35)
+                    (0, 119,   0),   # Normal
+                    (120, 139,  5),  # Prehypertension
+                    (140, 159, 10),  # Hypertension Stage 1
+                    (160, 179, 15),  # Hypertension Stage 2
+                    (180, 1000,20)   # Hypertensive crisis
                 ]
                 def get_sbp_points(sbp):
-                    """Return points based on systolic blood pressure."""
-                    for lo, hi, pt in sbp_table:
+                    """Return points based on updated systolic BP categories."""
+                    for lo, hi, pts in sbp_table:
                         if lo <= sbp <= hi:
-                            return pt
+                            return pts
                     return 0
 
-                # Diastolic BP points
+                # --- Diastolic BP points (aligned to new thresholds) ---
                 dbp_table = [
-                    (0,59,0),(60,69,4),(70,79,8),(80,89,12),(90,99,16),(100,1000,20)
+                    (0, 79,    0),   # Normal
+                    (80, 89,   5),   # Prehypertension
+                    (90, 99,  10),   # Hypertension Stage 1
+                    (100, 109,15),   # Hypertension Stage 2
+                    (110, 1000,20)   # Hypertensive crisis
                 ]
                 def get_dbp_points(dbp):
-                    """Return points based on diastolic blood pressure."""
-                    for lo, hi, pt in dbp_table:
+                    """Return points based on updated diastolic BP categories."""
+                    for lo, hi, pts in dbp_table:
                         if lo <= dbp <= hi:
-                            return pt
+                            return pts
                     return 0
 
-                # Pulse rate points
+                # --- Pulse rate points (unchanged) ---
                 pulse_table = [
-                    (0,59,5),(60,74,0),(75,89,5),(90,104,10),(105,120,15),(121,1000,20)
+                    (0, 59,   5), (60, 74,  0), (75, 89,   5),
+                    (90,104, 10), (105,120,15), (121,1000,20)
                 ]
                 def get_pulse_points(p):
                     """Return points based on resting heart rate."""
-                    for lo, hi, pt in pulse_table:
+                    for lo, hi, pts in pulse_table:
                         if lo <= p <= hi:
-                            return pt
+                            return pts
                     return 0
 
-                # Diabetes points (tripled weight)
+                # --- Diabetes points (unchanged) ---
                 def get_diab_points(f):
                     """Return points if diabetes is present."""
                     return 12 if f == "Yes" else 0
 
-                # Somma totale punti
+                # --- Sum all points ---
                 total = (
                     get_age_points(age)
                     + get_sbp_points(systolic_bp)
@@ -796,20 +804,20 @@ def run():
                     + get_diab_points(fasting_bs)
                 )
 
-                # Mappa punti → rischio a 10 anni
+                # --- Map total points to 10-year CHD risk percentage (unchanged) ---
                 risk_map = {
-                    range(0,30):  "5%",     # 0–29 punti
-                    range(30,60): "15%",    # 30–59 punti
-                    range(60,90): "30%",    # 60–89 punti
-                    range(90,120):"45%",    # 90–119 punti
-                    range(120,1000):">60%", # ≥120 punti
+                    range(0, 30):   "5%",     # 0–29 points
+                    range(30, 60):  "15%",    # 30–59 points
+                    range(60, 90):  "30%",    # 60–89 points
+                    range(90, 120): "45%",    # 90–119 points
+                    range(120, 1000):">60%"   # ≥120 points
                 }
-                for k, v in risk_map.items():
-                    if total in k:
-                        risk_pct = v
+                for pts_range, pct in risk_map.items():
+                    if total in pts_range:
+                        risk_pct = pct
                         break
 
-                # Categoria di rischio
+                # --- Determine risk category (unchanged) ---
                 num_risk = float(risk_pct.strip("%<>"))
                 if num_risk < 10:
                     level = "Low risk"
@@ -907,33 +915,60 @@ def run():
                         text-align:center;
                     ">
                         <h3 style="margin:0;">{risk_pct}</h3>
-                        <p style="margin:0; font-size:0.9rem;">10-year CHD risk</p>
-                        <p style="margin-top:8px; font-weight:600; color:#333;">{level}</p>
+                        <p style="font-weight:600; color:#333;">{level}</p>
                     </div>
                     """, unsafe_allow_html=True)
 
                 with col2:
-                    st.markdown(f"""
-                    <div style="padding:12px 16px; background:#f8f9fa; border-radius:8px;">
-                        <p>The patient scored <strong>{total} points</strong> according to the Framingham tables:</p>
-                        <ul style="margin-top:0.5rem; padding-left:1.2rem;">
-                            <li>Age: {age} years → {get_age_points(age)} points</li>
-                            <li>Systolic BP: {systolic_bp} mm Hg → {get_sbp_points(systolic_bp)} points</li>
-                            <li>Diastolic BP: {diastolic_bp} mm Hg → {get_dbp_points(diastolic_bp)} points</li>
-                            <li>Pulse rate: {pulse} bpm → {get_pulse_points(pulse)} points</li>
-                            <li>Diabetes: {'Yes' if fasting_bs=='Yes' else 'No'} → {get_diab_points(fasting_bs)} points</li>
-                        </ul>
-                        {(
-                            "<p style='color:#d84315; font-weight:600;'>Values to review:</p>"
-                            "<ul style='padding-left:1.2rem; margin-top:0.2rem;'>"
-                            + "".join(f"<li>{item}</li>" for item in abnormal)
-                            + "</ul>"
-                        ) if abnormal else
-                            "<p style='color:#2e7d32; font-weight:600; margin-top:0.5rem;'>All values are within normal ranges.</p>"
-                        }
+                    # prepare HTML legend
+                    legend_html = """
+                    <div style="margin-bottom:8px; font-size:0.9rem;">
+                    <span style="color:#2e7d32; font-size:1.2rem;">&#9679;</span> Good value
+                    &nbsp;&nbsp;
+                    <span style="color:#b71c1c; font-size:1.2rem;">&#9679;</span> Review value
                     </div>
-                    """, unsafe_allow_html=True)
+                    """
 
+                    # Funzione di supporto per il dot colorato
+                    def dot_html(is_abnormal):
+                        color = "#b71c1c" if is_abnormal else "#2e7d32"
+                        return f"<span style='color:{color}; font-size:1.1rem;'>&#9679;</span>"
+
+                    # Verifica anomalie per ciascun campo
+                    age_bad   = get_age_points(age) >= 10
+                    sbp_bad   = get_sbp_points(systolic_bp) > 0
+                    dbp_bad   = get_dbp_points(diastolic_bp) > 0
+                    pulse_bad = get_pulse_points(pulse) > 0
+                    diab_bad  = fasting_bs == "Yes"
+
+                    # Costruisce la lista HTML
+                    list_items = f"""
+                    <li>{dot_html(age_bad)} Age: {age} years</li>
+                    <li>{dot_html(sbp_bad)} Systolic BP: {systolic_bp} mm Hg</li>
+                    <li>{dot_html(dbp_bad)} Diastolic BP: {diastolic_bp} mm Hg</li>
+                    <li>{dot_html(pulse_bad)} Pulse rate: {pulse} bpm</li>
+                    <li>{dot_html(diab_bad)} Diabetes: {'Yes' if diab_bad else 'No'}</li>
+                    """
+
+                    html_content = f"""
+                    <div style="
+                        padding: 12px 16px;
+                        background: #f8f9fa;
+                        border-radius: 8px;
+                    ">
+                        {legend_html}
+                        <ul style="
+                            margin: 0;
+                            padding-left: 1.2rem;
+                            font-size: 0.95rem;
+                        ">
+                            {list_items}
+                        </ul>
+                    </div>
+                    """
+
+                    # Renderizza l’HTML tramite il componente
+                    components.html(html_content, height=200)
 # If no prediction yet, show welcome message
     if not st.session_state.predicted:
             st.markdown(
