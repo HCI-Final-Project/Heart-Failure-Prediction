@@ -615,7 +615,7 @@ def run():
                             f"""<div style="margin-bottom:2px;">
                                 <span style="color:#1565c0;font-weight:bold;">&#x25BC; <b>{feature}</b></span>
                                 <span style="color:#222;">– decreases risk by </span>
-                                <span style="color:#1565c0;font-weight:bold;">{abs(impact):.0f}%</span>
+                                <span style="color:#1565c0;font-weight:bold;">{abs(impact):.2f}%</span>
                             </div>"""
                             for feature, impact, _ in shap_sorted if impact < 0
                         )
@@ -626,7 +626,7 @@ def run():
                             f"""<div style="margin-bottom:2px;">
                                 <span style="color:#c62828;font-weight:bold;">&#x25B2; <b>{feature}</b></span>
                                 <span style="color:#222;">– increases risk by </span>
-                                <span style="color:#c62828;font-weight:bold;">{impact:.0f}%</span>
+                                <span style="color:#c62828;font-weight:bold;">{impact:.2f}%</span>
                             </div>"""
                             for feature, impact, _ in shap_sorted if impact > 0
                         )
@@ -709,7 +709,7 @@ def run():
                             f"""<div style="margin-bottom:2px;">
                                 <span style="color:#1565c0;font-weight:bold;">&#x25BC; <b>{row.feat_pretty}</b></span>
                                 <span style="color:#222;">– decreases risk by </span>
-                                <span style="color:#1565c0;font-weight:bold;">{abs(row.contrib):.0f}</span>
+                                <span style="color:#1565c0;font-weight:bold;">{abs(row.contrib):.2f}</span>
                             </div>"""
                             for _, row in df_lime_sorted.iterrows() if row.contrib < 0
                         )
@@ -720,7 +720,7 @@ def run():
                             f"""<div style="margin-bottom:2px;">
                                 <span style="color:#c62828;font-weight:bold;">&#x25B2; <b>{row.feat_pretty}</b></span>
                                 <span style="color:#222;">– increases risk by </span>
-                                <span style="color:#c62828;font-weight:bold;">{row.contrib:.0f}</span>
+                                <span style="color:#c62828;font-weight:bold;">{row.contrib:.2f}</span>
                             </div>"""
                             for _, row in df_lime_sorted.iterrows() if row.contrib > 0
                         )
