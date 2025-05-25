@@ -38,6 +38,15 @@ FEATURE_LABELS = {
     "ST_Slope_Up":       "ST Slope: Up",
 }
 
+ONEHOT_GROUPS = {
+    "Sex": ["Sex_F", "Sex_M"],
+    "ChestPainType": ["ChestPainType_ASY", "ChestPainType_ATA", "ChestPainType_NAP", "ChestPainType_TA"],
+    "RestingECG": ["RestingECG_LVH", "RestingECG_Normal", "RestingECG_ST"],
+    "ExerciseAngina": ["ExerciseAngina_N", "ExerciseAngina_Y"],
+    "ST_Slope": ["ST_Slope_Down", "ST_Slope_Flat", "ST_Slope_Up"]
+}
+
+
 def st_shap(plot, height=None, width=None):
     """
     Integrates a SHAP force plot (matplotlib=False) into Streamlit.
@@ -448,21 +457,32 @@ def run():
                 df_vals = df_input.iloc[i][valid_feat_names].to_frame(name='Value')
 
                 # Prepare SHAP and LIME results for display
-                shap_items = list(zip(single_exp.feature_names,
-                                    single_exp.values,
-                                    single_exp.data))
-                shap_sorted = sorted(shap_items, key=lambda x: x[1], reverse=True)
-                # Remove that with name "0.00"
-                shap_sorted = [(f, impact, val) for f, impact, val in shap_sorted if f != "0.00"]
-                shap_sorted = [(FEATURE_LABELS.get(f, f), impact, val) for f, impact, val in shap_sorted]
+
+                # --- SHAP feature consolidation (grouping one-hot categories) ---
+                adjusted_vals = {}
+                used_features = set()
+                for feat, impact, val in zip(names, vals, data):
+                    if feat in used_features:
+                        continue
+                    for group, cols in ONEHOT_GROUPS.items():
+                        if feat in cols:
+                            active_col = next((c for c in cols if df_input.iloc[0][c] == 1), None)
+                            total_contrib = sum(vals[names.index(c)] for c in cols if c in names)
+                            label = f"{group} = {active_col.split('_')[-1]}" if active_col else group
+                            adjusted_vals[group] = (label, total_contrib, 1)  # 1 is dummy value for visual
+                            used_features.update(cols)
+                            break
+                    else:
+                        adjusted_vals[feat] = (FEATURE_LABELS.get(feat, feat), impact, val)
+                        used_features.add(feat)
+                shap_sorted = sorted(adjusted_vals.values(), key=lambda x: abs(x[1]), reverse=True)
 
                 df_lime_sorted = df_contrib.sort_values(by='contrib', ascending=False).reset_index(drop=True)
 
                 # Remove that with name "0.00"
                 df_lime_sorted = df_lime_sorted[df_lime_sorted['feat_name'] != "0.00"]
                 df_lime_sorted['feat_pretty'] = df_lime_sorted['feat_name'].map(FEATURE_LABELS).fillna(df_lime_sorted['feat_name'])
-
-
+                
 
                 st.title("🧠 XAI Dashboard")   
 
@@ -569,29 +589,7 @@ def run():
                                     </span>
                     </div>
                     """, unsafe_allow_html=True)
-                    
-                    # List SHAP feature impacts (old, now moved below)
-                    # for feature, impact, value in shap_sorted:
-                    #     if impact > 0:
-                    #         st.markdown(
-                    #             f"""
-                    #             <span>
-                    #                 <span style='color:#827f78;'>🔺 <strong>{feature}</strong> - </span>
-                    #                 <span style='color:#E74C3C;'>increases risk by <strong>{impact:.2f}%</strong>.</span>
-                    #             </span>
-                    #             """,
-                    #             unsafe_allow_html=True
-                    #         )
-                    #     else:
-                    #         st.markdown(
-                    #             f"""
-                    #             <span>
-                    #                 <span style='color:#827f78;'>🔻 <strong>{feature}</strong> - </span>
-                    #                 <span style='color:#3498DB;'>decreases risk by <strong>{abs(impact):.2f}%</strong>.</span>
-                    #             </span>
-                    #             """,
-                    #             unsafe_allow_html=True
-                    #         )
+
                     st.markdown(
                         f"""
                         <div style='color:#827f78; margin-top:0.8%; margin-left:0.5%;'>
