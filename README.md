@@ -103,6 +103,12 @@ The classification model used (**Random Forest**) was trained using `scikit-lear
 
 This dashboard integrates two state-of-the-art XAI techniques to help users and clinicians understand the model's predictions:
 
+### Tab: SUMMARY
+- **Overview of both SHAP and LIME:** The "Summary" tab provides a concise textual explanation of the prediction, combining insights from both SHAP (global) and LIME (local) methods.
+- **Key factors listed:** It highlights which features, on average, tend to increase or decrease the risk (SHAP), and which features most influenced the individual prediction (LIME).
+- **Plain language:** The explanation is written in accessible language, making it easy for non-experts to understand the main drivers of the risk assessment.
+- **Overall risk statement:** The summary concludes with a clear statement about whether the patient is considered at risk or not, based on the model and the input parameters.
+
 ### SHAP (SHapley Additive exPlanations)
 - **Global and local explanations:** SHAP values show how each feature contributes to increasing or decreasing the risk, both for the individual prediction and across the dataset.
 - **Force plot visualization:** The app displays a SHAP force plot, highlighting the most influential features for the current prediction.

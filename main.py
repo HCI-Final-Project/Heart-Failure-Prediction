@@ -452,8 +452,17 @@ def run():
                                     single_exp.values,
                                     single_exp.data))
                 shap_sorted = sorted(shap_items, key=lambda x: x[1], reverse=True)
+                # Remove that with name "0.00"
+                shap_sorted = [(f, impact, val) for f, impact, val in shap_sorted if f != "0.00"]
+                shap_sorted = [(FEATURE_LABELS.get(f, f), impact, val) for f, impact, val in shap_sorted]
 
                 df_lime_sorted = df_contrib.sort_values(by='contrib', ascending=False).reset_index(drop=True)
+
+                # Remove that with name "0.00"
+                df_lime_sorted = df_lime_sorted[df_lime_sorted['feat_name'] != "0.00"]
+                df_lime_sorted['feat_pretty'] = df_lime_sorted['feat_name'].map(FEATURE_LABELS).fillna(df_lime_sorted['feat_name'])
+
+
 
                 st.title("🧠 XAI Dashboard")   
 
