@@ -893,30 +893,31 @@ def run():
                 col1, col2 = st.columns([1, 2])
                 with col1:
                     st.markdown(f"""
-                    <div style="
-                        background:#e3f2fd;
-                        padding:16px;
-                        border-radius:8px;
-                        text-align:center;
-                    ">
-                        <h3 style="margin:0;">{risk_pct}</h3>
-                        <p style="font-weight:600; color:#333;">{level}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        <div style="
+                            background:#e0e5ec;
+                            padding:16px;
+                            border-radius:8px;
+                            text-align:center;
+                            color:#222;
+                        ">
+                            <h3 style="margin:0; color:#1565c0;">{risk_pct}</h3>
+                            <p style="font-weight:600; color:#444;">{level}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
 
                 with col2:
                     # prepare HTML legend
                     legend_html = """
                     <div style="margin-bottom:8px; font-size:0.9rem;">
-                    <span style="color:#2e7d32; font-size:1.2rem;">&#9679;</span> Good value
-                    &nbsp;&nbsp;
-                    <span style="color:#b71c1c; font-size:1.2rem;">&#9679;</span> Review value
+                        <span style="color:#43a047; font-size:1.2rem;">&#9679;</span> Good value
+                        &nbsp;&nbsp;
+                        <span style="color:#e53935; font-size:1.2rem;">&#9679;</span> Review value
                     </div>
                     """
 
                     # Funzione di supporto per il dot colorato
                     def dot_html(is_abnormal):
-                        color = "#b71c1c" if is_abnormal else "#2e7d32"
+                        color = "#e53935" if is_abnormal else "#43a047"
                         return f"<span style='color:{color}; font-size:1.1rem;'>&#9679;</span>"
 
                     # Verifica anomalie per ciascun campo
@@ -936,8 +937,9 @@ def run():
                     html_content = f"""
                     <div style="
                         padding: 12px 16px;
-                        background: #f8f9fa;
+                        background: #e0e5ec;
                         border-radius: 8px;
+                        color: #222;
                     ">
                         {legend_html}
                         <ul style="
