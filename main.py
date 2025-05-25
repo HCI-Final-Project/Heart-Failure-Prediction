@@ -469,7 +469,7 @@ def run():
                             active_col = next((c for c in cols if df_input.iloc[0][c] == 1), None)
                             total_contrib = sum(vals[names.index(c)] for c in cols if c in names)
                             label = f"{group} = {active_col.split('_')[-1]}" if active_col else group
-                            adjusted_vals[group] = (label, total_contrib, 1)  # 1 is dummy value for visual
+                            adjusted_vals[group] = (label, total_contrib, 1)
                             used_features.update(cols)
                             break
                     else:
@@ -477,28 +477,50 @@ def run():
                         used_features.add(feat)
                 shap_sorted = sorted(adjusted_vals.values(), key=lambda x: abs(x[1]), reverse=True)
 
-                df_lime_sorted = df_contrib.sort_values(by='contrib', ascending=False).reset_index(drop=True)
+                # --- LIME feature consolidation (grouping one-hot categories) ---
+                lime_adjusted = {}
+                lime_used = set()
+                for idx, row in df_contrib.iterrows():
+                    feat = row['feat_name']
+                    contrib = row['contrib']
+                    for group, cols in ONEHOT_GROUPS.items():
+                        if feat in cols:
+                            if group not in lime_adjusted:
+                                active_col = next((c for c in cols if df_input.iloc[0][c] == 1), None)
+                                label = f"{group} = {active_col.split('_')[-1]}" if active_col else group
+                                lime_adjusted[group] = {'label': label, 'contrib': 0.0, 'color': None}
+                            lime_adjusted[group]['contrib'] += contrib
+                            lime_used.add(feat)
+                            break
+                    else:
+                        label = FEATURE_LABELS.get(feat, feat)
+                        lime_adjusted[feat] = {'label': label, 'contrib': contrib, 'color': None}
+                        lime_used.add(feat)
+                for v in lime_adjusted.values():
+                    v['color'] = 'orangered' if v['contrib'] > 0 else 'steelblue'
+                df_lime_sorted = pd.DataFrame([
+                    {'feat_pretty': v['label'], 'contrib': v['contrib'], 'color': v['color']}
+                    for v in lime_adjusted.values()
+                ]).sort_values(by='contrib', ascending=False).reset_index(drop=True)
 
-                # Remove that with name "0.00"
-                df_lime_sorted = df_lime_sorted[df_lime_sorted['feat_name'] != "0.00"]
-                df_lime_sorted['feat_pretty'] = df_lime_sorted['feat_name'].map(FEATURE_LABELS).fillna(df_lime_sorted['feat_name'])
-                
+                # Remove from lime feature with name 0.00
+                df_lime_sorted = df_lime_sorted[df_lime_sorted['feat_pretty'] != '0.00']
 
-                st.title("🧠 XAI Dashboard")   
+                st.title("🧠 XAI Dashboard")
 
                 # Lists of features increasing/decreasing risk for SHAP and LIME
-                shap_inc = [FEATURE_LABELS.get(f, f) for f, impact, _ in shap_sorted if impact > 0]
-                shap_dec = [FEATURE_LABELS.get(f, f) for f, impact, _ in shap_sorted if impact < 0]
+                shap_inc = [f for f, impact, _ in shap_sorted if impact > 0]
+                shap_dec = [f for f, impact, _ in shap_sorted if impact < 0]
 
                 lime_inc = [
-                    FEATURE_LABELS.get(row.feat_name, row.feat_name)
+                    row['feat_pretty']
                     for _, row in df_lime_sorted.iterrows()
-                    if row.contrib > 0
+                    if row['contrib'] > 0
                 ]
                 lime_dec = [
-                    FEATURE_LABELS.get(row.feat_name, row.feat_name)
+                    row['feat_pretty']
                     for _, row in df_lime_sorted.iterrows()
-                    if row.contrib < 0
+                    if row['contrib'] < 0
                 ]
 
                 # Custom CSS for explanation box
